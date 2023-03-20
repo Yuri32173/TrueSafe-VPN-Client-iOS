@@ -9,7 +9,7 @@
 More Features
 ==================
 
-OpenVPN-IOS is an Objective-C project that allows to easily configure and establish VPN connection using OpenVPN protocol. It is based on the original openvpn3 library so it has every feature the library has.
+TrueSafe-VPN-Client-IOS is an Objective-C project that allows to easily configure and establish VPN connection using OpenVPN protocol. It is based on the original openvpn3 library so it has every feature the library has.
 
 The project is designed to use in conjunction with NetworkExtension framework and doesn't use any private Apple API. 
 
