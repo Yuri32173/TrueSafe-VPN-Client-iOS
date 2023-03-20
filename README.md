@@ -1,4 +1,4 @@
-# OpenVPN-IOS
+# TrueSafe-VPN-Client-iOS
 
 ![Platforms](https://img.shields.io/badge/iOS-9.0+-yellow.svg)
 ![iOS Versions](https://img.shields.io/badge/iOS-9.0+-yellow.svg)
