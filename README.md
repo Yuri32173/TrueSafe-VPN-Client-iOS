@@ -62,4 +62,4 @@ if you are interested or have problems when use, pls contact me
 skype: tranvietanh.hust@gmail.com
 email: tranvietanh.hust@gmail.com
 
-Do not hesitate, just a small fee I will help you complete the OpenVPN project on IOS
+Do not hesitate, just a small fee I will help you complete the TrueSafe-VPN-Client-iOS project on IOS
