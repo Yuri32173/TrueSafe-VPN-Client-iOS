@@ -1,7 +1,3 @@
-
-//	Gathers unpredictable system data to be used for generating
-//	random bits
-
 #include <MacTypes.h>
 
 class CRandomizer
