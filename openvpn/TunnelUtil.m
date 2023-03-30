@@ -3,8 +3,6 @@
 //  openvpn
 //
 //  Created by Tran Viet Anh on 6/13/17.
-//
-//
 
 #import "TunnelUtil.h"
 
