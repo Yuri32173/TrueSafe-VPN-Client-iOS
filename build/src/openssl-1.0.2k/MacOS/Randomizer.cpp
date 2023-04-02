@@ -7,26 +7,21 @@
 	more discussion, of general and Mac-specific issues has appeared
 	in "Using and Creating Cryptographic- Quality Random Numbers" by
 	Jon Callas (www.merrymeet.com/jon/usingrandom.html).
-
 	The data and entropy estimates provided below are based on my
 	limited experimentation and estimates, rather than by any
 	rigorous study, and the entropy estimates tend to be optimistic.
 	They should not be considered absolute.
-
 	Some of the information being collected may be correlated in
 	subtle ways. That includes mouse positions, timings, and disk
 	size measurements. Some obvious correlations will be eliminated
 	by the programmer, but other, weaker ones may remain. The
 	reliability of the code depends on such correlations being
 	poorly understood, both by us and by potential interceptors.
-
 	This package has been planned to be used with OpenSSL, v. 0.9.5.
 	It requires the OpenSSL function RAND_add. 
-
 --	OTHER WORK: Some source code and other details have been
 	published elsewhere, but I haven't found any to be satisfactory
 	for the Mac per se:
-
 	* The Linux random number generator (by Theodore Ts'o, in
 	  drivers/char/random.c), is a carefully designed open-source
 	  crypto random number package. It collects data from a variety
@@ -35,13 +30,11 @@
 	  of the data it collects. Some of its features (e.g. interrupt
 	  timing) cannot be reliably exported to the Mac without using
 	  undocumented APIs.
-
 	* Truerand by Don P. Mitchell and Matt Blaze uses variations
 	  between different timing mechanisms on the same system. This
 	  has not been tested on the Mac, but requires preemptive
 	  multitasking, and is hardware-dependent, and can't be relied
 	  on to work well if only one oscillator is present.
-
 	* Cryptlib's RNG for the Mac (RNDMAC.C by Peter Gutmann),
 	  gathers a lot of information about the machine and system
 	  environment. Unfortunately, much of it is constant from one
@@ -51,7 +44,6 @@
 	  X). Incidentally, the EGD library is based on the UNIX entropy
 	  gathering methods in cryptlib, and isn't suitable for MacOS
 	  either.
-
 	* Mozilla (and perhaps earlier versions of Netscape) uses the
 	  time of day (in seconds) and an uninitialized local variable
 	  to seed the random number generator. The time of day is known
@@ -59,14 +51,12 @@
 	  system clock). The uninitialized variable could easily be
 	  identical between subsequent launches of an application, if it
 	  is reached through the same path.
-
 	* OpenSSL provides the function RAND_screen(), by G. van
 	  Oosten, which hashes the contents of the screen to generate a
 	  seed. This is not useful for an extension or for an
 	  application which launches at startup time, since the screen
 	  is likely to look identical from one launch to the next. This
 	  method is also rather slow.
-
 	* Using variations in disk drive seek times has been proposed
 	  (Davis, Ihaka and Fenstermacher, world.std.com/~dtd/;
 	  Jakobsson, Shriver, Hillyer and Juels,
@@ -76,7 +66,6 @@
 	  this technique is slow, and some implementations of it may be
 	  patented (see Shriver's page above.) It of course cannot be
 	  used with a RAM disk.
-
 --	TIMING: On the 601 PowerPC the time base register is guaranteed
 	to change at least once every 10 addi instructions, i.e. 10
 	cycles. On a 60 MHz machine (slowest PowerPC) this translates to
@@ -88,7 +77,6 @@
 	(developer.apple.com/dev/techsupport/develop/issue29/minow.html)
 	for information on its accuracy and resolution. The code below
 	has been tested only on PowerPC based machines.
-
 	The time from machine startup to the launch of an application in
 	the startup folder has a variance of about 1.6 msec on a new G4
 	machine with a defragmented and optimized disk, most extensions
@@ -99,11 +87,9 @@
 	to be investigated, but I am guessing that it not a majpor
 	problem. Entropy = log2 (1600/0.166) ~= 13 bits on a 60 MHz
 	machine, ~16 bits for a 450 MHz machine.
-
 	User-launched application startup times will have a variance of
 	a second or more relative to machine startup time. Entropy >~22
 	bits.
-
 	Machine startup time is available with a 1-second resolution. It
 	is predictable to no better a minute or two, in the case of
 	people who show up punctually to work at the same time and
@@ -111,10 +97,8 @@
 	feature (when available) will cause the machine to start up at
 	the same time every day, making the value predictable. Entropy
 	>~7 bits, or 0 bits with scheduled startup.
-
 	The time of day is of course known to an outsider and thus has 0
 	entropy if the system clock is regularly calibrated.
-
 --	KEY TIMING: A  very fast typist (120 wpm) will have a typical
 	inter-key timing interval of 100 msec. We can assume a variance
 	of no less than 2 msec -- maybe. Do good typists have a constant
@@ -124,7 +108,6 @@
 	between process switches, at best 1 tick (17 msec). I  therefore
 	consider this technique questionable and not very useful for
 	obtaining high entropy data on the Mac.
-
 --	MOUSE POSITION AND TIMING: The high bits of the mouse position
 	are far from arbitrary, since the mouse tends to stay in a few
 	limited areas of the screen. I am guessing that the position of
@@ -132,7 +115,6 @@
 	stays still for long periods of time, it should be sampled only
 	after it was moved, to avoid correlated data. This gives an
 	entropy of log2(6*6) ~= 5 bits per measurement.
-
 	The time during which the mouse stays still can vary from zero
 	to, say, 5 seconds (occasionally longer). If the still time is
 	measured by sampling the mouse during null events, and null
@@ -140,11 +122,9 @@
 	second, giving an entropy of log2 (60*5) ~= 8 bits per
 	measurement. Since the distribution of still times is uneven,
 	this estimate is on the high side.
-
 	For simplicity and compatibility across system versions, the
 	mouse is to be sampled explicitly (e.g. in the event loop),
 	rather than in a time manager task.
-
 --	STARTUP DISK TOTAL FILE SIZE: Varies typically by at least 20k
 	from one startup to the next, with 'minimal' computer use. Won't
 	vary at all if machine is started again immediately after
@@ -161,7 +141,6 @@
 	with the total file size on the disk. With more fragmentation
 	comes less certainty. I took the variation in this value to be
 	1/8 of the total file size on the volume.
-
 --	SYSTEM REQUIREMENTS: The code here requires System 7.0 and above
 	(for Gestalt and Microseconds calls). All the calls used are
 	Carbon-compatible.
