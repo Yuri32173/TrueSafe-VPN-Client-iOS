@@ -27,6 +27,27 @@ __END_DECLS
 
 /* Configure Socket Factories */
 
+#define GUSI_SOURCE
+#include <GUSIConfig.h>
+#include <sys/cdefs.h>
+
+/* Declarations of Socket Factories */
+
+__BEGIN_DECLS
+void GUSIwithInetSockets();
+void GUSIwithLocalSockets();
+void GUSIwithMTInetSockets();
+void GUSIwithMTTcpSockets();
+void GUSIwithMTUdpSockets();
+void GUSIwithOTInetSockets();
+void GUSIwithOTTcpSockets();
+void GUSIwithOTUdpSockets();
+void GUSIwithPPCSockets();
+void GUSISetupFactories();
+__END_DECLS
+
+/* Configure Socket Factories */
+
 void GUSISetupFactories()
 {
 #ifdef GUSISetupFactories_BeginHook
@@ -58,5 +79,6 @@ void GUSISetupDevices()
 	GUSISetupDevices_EndHook
 #endif
 }
+
 
 /**************** END GUSI CONFIGURATION *************************/
