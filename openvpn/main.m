@@ -2,17 +2,14 @@
 //  main.m
 //  openvpn
 //
-//  Created by Christopher Ballinger on 11/3/13.
 //
 //
 
 #import <UIKit/UIKit.h>
+#import "AppDelegate.h"
 
-#import "VPNAppDelegate.h"
-
-int main(int argc, char * argv[])
-{
+int main(int argc, char * argv[]) {
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([VPNAppDelegate class]));
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }
 }
