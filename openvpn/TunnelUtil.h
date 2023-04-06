@@ -1,10 +1,4 @@
-//
-//  TunnelUtil.h
-//  openvpn
-//
-//  Created by Tran Viet Anh on 6/13/17.
-//
-//
+
 
 #import <Foundation/Foundation.h>
 
@@ -17,7 +11,6 @@
  0.0.0.0-10.5.0.37-128.0.0.0
  128.0.0.0-10.5.0.37-128.0.0.0
  10.5.0.1-10.5.0.37-255.255.255.255
- final
  @param fileContent content file
  @return true or false
  */
