@@ -29,19 +29,15 @@
 #include "MacSocket.h"
 #include "Randomizer.h"
 
-//	We use the OpenSSL implementation of SSL....
-//	This was a lot of work to finally get going, though you wouldn't know it by the results!
-
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
 #include <timer.h>
 
-//	Let's try grabbing some data from here:
-
-#define kHTTPS_DNS		"www.apache-ssl.org"
-#define kHTTPS_Port		443
-#define kHTTPS_URI		"/"
+#define kHTTPS_DNS			"www.apache-ssl.org"
+#define kHTTPS_Port			443
+#define kHTTPS_URI			"/"
+#define kMaxStringLength	256
 
 
 //	Forward-declare this
