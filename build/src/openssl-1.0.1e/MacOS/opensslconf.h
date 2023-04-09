@@ -100,7 +100,6 @@
 #endif
 
 #if defined(DES_RISC1) && defined(DES_RISC2)
-YOU SHOULD NOT HAVE BOTH DES_RISC1 AND DES_RISC2 DEFINED!!!!!
 #endif
 
 /* Unroll the inner loop, this sometimes helps, sometimes hinders.
@@ -108,7 +107,6 @@ YOU SHOULD NOT HAVE BOTH DES_RISC1 AND DES_RISC2 DEFINED!!!!!
 #ifndef DES_UNROLL
 #define DES_UNROLL
 #endif
-
 #endif /* HEADER_DES_LOCL_H */
 
 #ifndef __POWERPC__
