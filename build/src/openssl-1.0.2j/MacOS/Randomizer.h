@@ -1,42 +1,35 @@
+#include <chrono>
+#include <random>
+#include <cstddef>
 
-// Gathers unpredictable system data to be used for generating
-// random bits
+class Randomizer {
+public:
+    Randomizer() : supports_large_volumes_(false), is_power_pc_(false), is_601_(false), timebase_ticks_per_millisec_(0.0), last_periodic_ticks_(0), sample_period_(0), mouse_still_(0) {}
+    void PeriodicAction() {}
 
-#include <MacTypes.h>
-
-class CRandomizer {
- public:
-    CRandomizer(void);
-    void PeriodicAction(void);
-
- private:
-
-    // Private calls
-
-    void AddTimeSinceMachineStartup(void);
-    void AddAbsoluteSystemStartupTime(void);
-    void AddAppRunningTime(void);
-    void AddStartupVolumeInfo(void);
-    void AddFiller(void);
-
-    void AddCurrentMouse(void);
-    void AddNow(double millisecondUncertainty);
-    void AddBytes(void *data, long size, double entropy);
-
-    void GetTimeBaseResolution(void);
-    unsigned long SysTimer(void);
+private:
+    void AddTimeSinceMachineStartup() {}
+    void AddAbsoluteSystemStartupTime() {}
+    void AddAppRunningTime() {}
+    void AddStartupVolumeInfo() {}
+    void AddFiller() {}
+    void AddCurrentMouse() {}
+    void AddNow(double millisecondUncertainty) {}
+    void AddBytes(void *data, std::size_t size, double entropy) {}
+    void GetTimeBaseResolution() {}
+    unsigned long SysTimer() {}
 
     // System Info
-    bool mSupportsLargeVolumes;
-    bool mIsPowerPC;
-    bool mIs601;
+    bool supports_large_volumes_;
+    bool is_power_pc_;
+    bool is_601_;
 
     // Time info
-    double mTimebaseTicksPerMillisec;
-    unsigned long mLastPeriodicTicks;
+    double timebase_ticks_per_millisec_;
+    unsigned long last_periodic_ticks_;
 
     // Mouse info
-    long mSamplePeriod;
-    Point mLastMouse;
-    long mMouseStill;
+    long sample_period_;
+    Point last_mouse_;
+    long mouse_still_;
 };
