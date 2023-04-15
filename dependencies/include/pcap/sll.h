@@ -73,57 +73,59 @@
  * packets in them.
  */
 
-#ifndef lib_pcap_sll_h
-#define lib_pcap_sll_h
+#ifndef LIB_PCAP_SLL_H
+#define LIB_PCAP_SLL_H
 
-/*
- * A DLT_LINUX_SLL fake link-layer header.
- */
-#define SLL_HDR_LEN	16		/* total header length */
-#define SLL_ADDRLEN	8		/* length of address field */
+#include <cstdint>
+#include <array>
+
+// A DLT_LINUX_SLL fake link-layer header.
+constexpr std::size_t SLL_HDR_LEN = 16;	// total header length
+constexpr std::size_t SLL_ADDRLEN = 8;	// length of address field
 
 struct sll_header {
-	u_int16_t sll_pkttype;		/* packet type */
-	u_int16_t sll_hatype;		/* link-layer address type */
-	u_int16_t sll_halen;		/* link-layer address length */
-	u_int8_t sll_addr[SLL_ADDRLEN];	/* link-layer address */
-	u_int16_t sll_protocol;		/* protocol */
+    std::uint16_t sll_pkttype;				// packet type
+    std::uint16_t sll_hatype;				// link-layer address type
+    std::uint16_t sll_halen;				// link-layer address length
+    std::array<std::uint8_t, SLL_ADDRLEN> sll_addr;	// link-layer address
+    std::uint16_t sll_protocol;				// protocol
 };
 
-/*
- * The LINUX_SLL_ values for "sll_pkttype"; these correspond to the
- * PACKET_ values on Linux, but are defined here so that they're
- * available even on systems other than Linux, and so that they
- * don't change even if the PACKET_ values change.
- */
-#define LINUX_SLL_HOST		0
-#define LINUX_SLL_BROADCAST	1
-#define LINUX_SLL_MULTICAST	2
-#define LINUX_SLL_OTHERHOST	3
-#define LINUX_SLL_OUTGOING	4
+// The LINUX_SLL_ values for "sll_pkttype"; these correspond to the
+// PACKET_ values on Linux, but are defined here so that they're
+// available even on systems other than Linux, and so that they
+// don't change even if the PACKET_ values change.
+enum : std::uint16_t {
+    LINUX_SLL_HOST = 0,
+    LINUX_SLL_BROADCAST = 1,
+    LINUX_SLL_MULTICAST = 2,
+    LINUX_SLL_OTHERHOST = 3,
+    LINUX_SLL_OUTGOING = 4
+};
 
-/*
- * The LINUX_SLL_ values for "sll_protocol"; these correspond to the
- * ETH_P_ values on Linux, but are defined here so that they're
- * available even on systems other than Linux.  We assume, for now,
- * that the ETH_P_ values won't change in Linux; if they do, then:
- *
- *	if we don't translate them in "pcap-linux.c", capture files
- *	won't necessarily be readable if captured on a system that
- *	defines ETH_P_ values that don't match these values;
- *
- *	if we do translate them in "pcap-linux.c", that makes life
- *	unpleasant for the BPF code generator, as the values you test
- *	for in the kernel aren't the values that you test for when
- *	reading a capture file, so the fixup code run on BPF programs
- *	handed to the kernel ends up having to do more work.
- *
- * Add other values here as necessary, for handling packet types that
- * might show up on non-Ethernet, non-802.x networks.  (Not all the ones
- * in the Linux "if_ether.h" will, I suspect, actually show up in
- * captures.)
- */
-#define LINUX_SLL_P_802_3	0x0001	/* Novell 802.3 frames without 802.2 LLC header */
-#define LINUX_SLL_P_802_2	0x0004	/* 802.2 frames (not D/I/X Ethernet) */
+// The LINUX_SLL_ values for "sll_protocol"; these correspond to the
+// ETH_P_ values on Linux, but are defined here so that they're
+// available even on systems other than Linux.  We assume, for now,
+// that the ETH_P_ values won't change in Linux; if they do, then:
+//
+//  if we don't translate them in "pcap-linux.c", capture files
+//  won't necessarily be readable if captured on a system that
+//  defines ETH_P_ values that don't match these values;
+//
+//  if we do translate them in "pcap-linux.c", that makes life
+//  unpleasant for the BPF code generator, as the values you test
+//  for in the kernel aren't the values that you test for when
+//  reading a capture file, so the fixup code run on BPF programs
+//  handed to the kernel ends up having to do more work.
+//
+// Add other values here as necessary, for handling packet types that
+// might show up on non-Ethernet, non-802.x networks.  (Not all the ones
+// in the Linux "if_ether.h" will, I suspect, actually show up in
+// captures.)
+enum : std::uint16_t {
+    LINUX_SLL_P_802_3 = 0x0001, // Novell 802.3 frames without 802.2 LLC header
+    LINUX_SLL_P_802_2 = 0x0004  // 802.2 frames (not D/I/X Ethernet)
+};
 
 #endif
+
