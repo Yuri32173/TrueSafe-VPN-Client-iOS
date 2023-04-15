@@ -33,14 +33,17 @@
  * @(#) $Header: /tcpdump/master/libpcap/pcap/vlan.h,v 1.1 2008-08-06 07:45:00 guy Exp $
  */
 
-#ifndef lib_pcap_vlan_h
-#define lib_pcap_vlan_h
+#ifndef LIB_PCAP_VLAN_H
+#define LIB_PCAP_VLAN_H
 
-struct vlan_tag {
-	u_int16_t	vlan_tpid;		/* ETH_P_8021Q */
-	u_int16_t	vlan_tci;		/* VLAN TCI */
+#include <cstdint>
+
+struct VlanTag {
+    std::uint16_t vlan_tpid;    // ETH_P_8021Q
+    std::uint16_t vlan_tci;     // VLAN TCI
 };
 
-#define VLAN_TAG_LEN	4
+constexpr std::size_t VLAN_TAG_LEN = 4;
 
 #endif
+
