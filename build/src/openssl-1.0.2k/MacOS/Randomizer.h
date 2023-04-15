@@ -1,38 +1,44 @@
-
 // Gathers unpredictable system data to be used for generating
 // random bits
 
 #include <MacTypes.h>
 
-class CRandomizer {
- public:
-    CRandomizer(void);
-    void PeriodicAction(void);
+class Randomizer {
+public:
+Randomizer();
+void periodicAction();
 
- private:
+private:
 
-    // Private calls
+// Private methods
 
-    void AddTimeSinceMachineStartup(void);
-    void AddAbsoluteSystemStartupTime(void);
-    void AddAppRunningTime(void);
-    void AddStartupVolumeInfo(void);
-    void AddFiller(void);
+void addTimeSinceMachineStartup();
+void addAbsoluteSystemStartupTime();
+void addAppRunningTime();
+void addStartupVolumeInfo();
+void addFiller();
 
-    void AddCurrentMouse(void);
-    void AddNow(double millisecondUncertainty);
-    void AddBytes(void *data, long size, double entropy);
+void addCurrentMouse();
+void addNow(double millisecondUncertainty);
+void addBytes(void* data, long size, double entropy);
 
-    void GetTimeBaseResolution(void);
-    unsigned long SysTimer(void);
+void getTimeBaseResolution();
+unsigned long sysTimer();
 
-    // System Info
-    bool mSupportsLargeVolumes;
-    bool mIsPowerPC;
-    bool mIs601;
+// System Info
+bool supportsLargeVolumes;
+bool isPowerPC;
+bool is601;
 
-    // Time info
-    double mTimebaseTicksPerMillisec;
+// Time info
+double timebaseTicksPerMillisec;
+unsigned long lastPeriodicTicks;
+
+// Mouse info
+long samplePeriod;
+Point lastMouse;
+long mouseStill;
+
     unsigned long mLastPeriodicTicks;
 
     // Mouse info
