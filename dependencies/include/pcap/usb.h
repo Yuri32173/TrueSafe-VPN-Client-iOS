@@ -33,111 +33,81 @@
  * @(#) $Header: /tcpdump/master/libpcap/pcap/usb.h,v 1.9 2008-12-23 20:13:29 guy Exp $
  */
  
-#ifndef _PCAP_USB_STRUCTS_H__
-#define _PCAP_USB_STRUCTS_H__
+#ifndef PCAP_USB_STRUCTS_H
+#define PCAP_USB_STRUCTS_H
 
-/* 
- * possible transfer mode
- */
-#define URB_TRANSFER_IN   0x80
-#define URB_ISOCHRONOUS   0x0
-#define URB_INTERRUPT     0x1
-#define URB_CONTROL       0x2
-#define URB_BULK          0x3
+#include <cstdint>
 
-/*
- * possible event type
- */
-#define URB_SUBMIT        'S'
-#define URB_COMPLETE      'C'
-#define URB_ERROR         'E'
+constexpr uint8_t URB_TRANSFER_IN = 0x80;
+constexpr uint8_t URB_ISOCHRONOUS = 0x0;
+constexpr uint8_t URB_INTERRUPT = 0x1;
+constexpr uint8_t URB_CONTROL = 0x2;
+constexpr uint8_t URB_BULK = 0x3;
 
-/*
- * USB setup header as defined in USB specification.
- * Appears at the front of each Control S-type packet in DLT_USB captures.
- */
-typedef struct _usb_setup {
-	u_int8_t bmRequestType;
-	u_int8_t bRequest;
-	u_int16_t wValue;
-	u_int16_t wIndex;
-	u_int16_t wLength;
-} pcap_usb_setup;
+constexpr uint8_t URB_SUBMIT = 'S';
+constexpr uint8_t URB_COMPLETE = 'C';
+constexpr uint8_t URB_ERROR = 'E';
 
-/*
- * Information from the URB for Isochronous transfers.
- */
-typedef struct _iso_rec {
-	int32_t	error_count;
-	int32_t	numdesc;
-} iso_rec;
+struct PcapUsbSetup {
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+};
 
-/*
- * Header prepended by linux kernel to each event.
- * Appears at the front of each packet in DLT_USB_LINUX captures.
- */
-typedef struct _usb_header {
-	u_int64_t id;
-	u_int8_t event_type;
-	u_int8_t transfer_type;
-	u_int8_t endpoint_number;
-	u_int8_t device_address;
-	u_int16_t bus_id;
-	char setup_flag;/*if !=0 the urb setup header is not present*/
-	char data_flag; /*if !=0 no urb data is present*/
-	int64_t ts_sec;
-	int32_t ts_usec;
-	int32_t status;
-	u_int32_t urb_len;
-	u_int32_t data_len; /* amount of urb data really present in this event*/
-	pcap_usb_setup setup;
-} pcap_usb_header;
+struct IsoRec {
+    int32_t error_count;
+    int32_t numdesc;
+};
 
-/*
- * Header prepended by linux kernel to each event for the 2.6.31
- * and later kernels; for the 2.6.21 through 2.6.30 kernels, the
- * "iso_rec" information, and the fields starting with "interval"
- * are zeroed-out padding fields.
- *
- * Appears at the front of each packet in DLT_USB_LINUX_MMAPPED captures.
- */
-typedef struct _usb_header_mmapped {
-	u_int64_t id;
-	u_int8_t event_type;
-	u_int8_t transfer_type;
-	u_int8_t endpoint_number;
-	u_int8_t device_address;
-	u_int16_t bus_id;
-	char setup_flag;/*if !=0 the urb setup header is not present*/
-	char data_flag; /*if !=0 no urb data is present*/
-	int64_t ts_sec;
-	int32_t ts_usec;
-	int32_t status;
-	u_int32_t urb_len;
-	u_int32_t data_len; /* amount of urb data really present in this event*/
-	union {
-		pcap_usb_setup setup;
-		iso_rec iso;
-	} s;
-	int32_t	interval;	/* for Interrupt and Isochronous events */
-	int32_t start_frame;	/* for Isochronous events */
-	u_int32_t xfer_flags;	/* copy of URB's transfer flags */
-	u_int32_t ndesc;	/* number of isochronous descriptors */
-} pcap_usb_header_mmapped;
+struct PcapUsbHeader {
+    uint64_t id;
+    uint8_t event_type;
+    uint8_t transfer_type;
+    uint8_t endpoint_number;
+    uint8_t device_address;
+    uint16_t bus_id;
+    char setup_flag; // if !=0 the urb setup header is not present
+    char data_flag; // if !=0 no urb data is present
+    int64_t ts_sec;
+    int32_t ts_usec;
+    int32_t status;
+    uint32_t urb_len;
+    uint32_t data_len; // amount of urb data really present in this event
+    PcapUsbSetup setup;
+};
 
-/*
- * Isochronous descriptors; for isochronous transfers there might be
- * one or more of these at the beginning of the packet data.  The
- * number of descriptors is given by the "ndesc" field in the header;
- * as indicated, in older kernels that don't put the descriptors at
- * the beginning of the packet, that field is zeroed out, so that field
- * can be trusted even in captures from older kernels.
- */
-typedef struct _usb_isodesc {
-	int32_t		status;
-	u_int32_t	offset;
-	u_int32_t	len;
-	u_int8_t	pad[4];
-} usb_isodesc;
+struct PcapUsbHeaderMmapped {
+    uint64_t id;
+    uint8_t event_type;
+    uint8_t transfer_type;
+    uint8_t endpoint_number;
+    uint8_t device_address;
+    uint16_t bus_id;
+    char setup_flag; // if !=0 the urb setup header is not present
+    char data_flag; // if !=0 no urb data is present
+    int64_t ts_sec;
+    int32_t ts_usec;
+    int32_t status;
+    uint32_t urb_len;
+    uint32_t data_len; // amount of urb data really present in this event
+    union {
+        PcapUsbSetup setup;
+        IsoRec iso;
+    } s;
+    int32_t interval; // for Interrupt and Isochronous events
+    int32_t start_frame; // for Isochronous events
+    uint32_t xfer_flags; // copy of URB's transfer flags
+    uint32_t ndesc; // number of isochronous descriptors
+};
 
-#endif
+struct UsbIsoDesc {
+    int32_t status;
+    uint32_t offset;
+    uint32_t len;
+    uint8_t pad[4];
+};
+
+#endif // PCAP_USB_STRUCTS_H
+
