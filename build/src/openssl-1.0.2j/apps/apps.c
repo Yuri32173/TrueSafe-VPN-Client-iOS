@@ -910,49 +910,47 @@ X509 *load_cert(BIO *err, const char *file, int format,
     return (x);
 }
 
-X509_CRL *load_crl(const char *infile, int format)
+unique_ptr<X509_CRL, decltype(&X509_CRL_free)> load_crl(const char *infile, int format)
 {
-    X509_CRL *x = NULL;
-    BIO *in = NULL;
+    unique_ptr<X509_CRL, decltype(&X509_CRL_free)> x(nullptr, &X509_CRL_free);
+    unique_ptr<BIO, decltype(&BIO_free)> in(BIO_new(BIO_s_file()), &BIO_free);
 
     if (format == FORMAT_HTTP) {
-        load_cert_crl_http(infile, bio_err, NULL, &x);
+        load_cert_crl_http(infile, bio_err, NULL, x.get());
         return x;
     }
 
-    in = BIO_new(BIO_s_file());
-    if (in == NULL) {
-        ERR_print_errors(bio_err);
-        goto end;
+    if (!in) {
+        cerr << "Error creating input BIO" << endl;
+        return x;
     }
 
-    if (infile == NULL)
-        BIO_set_fp(in, stdin, BIO_NOCLOSE);
-    else {
-        if (BIO_read_filename(in, infile) <= 0) {
+    if (infile == nullptr) {
+        BIO_set_fp(in.get(), stdin, BIO_NOCLOSE);
+    } else {
+        if (BIO_read_filename(in.get(), infile) <= 0) {
             perror(infile);
-            goto end;
+            return x;
         }
     }
-    if (format == FORMAT_ASN1)
-        x = d2i_X509_CRL_bio(in, NULL);
-    else if (format == FORMAT_PEM)
-        x = PEM_read_bio_X509_CRL(in, NULL, NULL, NULL);
-    else {
-        BIO_printf(bio_err, "bad input format specified for input crl\n");
-        goto end;
+
+    if (format == FORMAT_ASN1) {
+        x.reset(d2i_X509_CRL_bio(in.get(), nullptr));
+    } else if (format == FORMAT_PEM) {
+        x.reset(PEM_read_bio_X509_CRL(in.get(), nullptr, nullptr, nullptr));
+    } else {
+        cerr << "Bad input format specified for input crl" << endl;
+        return x;
     }
-    if (x == NULL) {
-        BIO_printf(bio_err, "unable to load CRL\n");
+
+    if (x == nullptr) {
+        cerr << "Unable to load CRL" << endl;
         ERR_print_errors(bio_err);
-        goto end;
+        return x;
     }
 
- end:
-    BIO_free(in);
-    return (x);
+    return x;
 }
-
 EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
                    const char *pass, ENGINE *e, const char *key_descrip)
 {
