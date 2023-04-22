@@ -2,7 +2,6 @@
 //  VPNAppDelegate.h
 //  openvpn
 //
-//  Created by Christopher Ballinger on 11/3/13.
 //
 //
 
