@@ -1,159 +1,106 @@
-/* ====================================================================
- * Copyright (c) 2004 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    openssl-core@openssl.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-
-#include <string.h>
-
-#include "apps.h"
+#include <string>
+#include <iostream>
+#include <memory>
 #include <openssl/bn.h>
 
-#undef PROG
-#define PROG prime_main
-
-int MAIN(int, char **);
-
-int MAIN(int argc, char **argv)
-{
+int main(int argc, char* argv[]) {
     int hex = 0;
     int checks = 20;
     int generate = 0;
     int bits = 0;
     int safe = 0;
-    BIGNUM *bn = NULL;
-    BIO *bio_out;
+    std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(nullptr, BN_free);
+    std::unique_ptr<BIO, decltype(&BIO_free_all)> bio_out(nullptr, BIO_free_all);
 
-    apps_startup();
+    // Set up error reporting
+    BIO* bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
+    if (bio_err == nullptr) {
+        std::cerr << "Error setting up error reporting" << std::endl;
+        return 1;
+    }
 
-    if (bio_err == NULL)
-        if ((bio_err = BIO_new(BIO_s_file())) != NULL)
-            BIO_set_fp(bio_err, stderr, BIO_NOCLOSE | BIO_FP_TEXT);
-
-    --argc;
-    ++argv;
-    while (argc >= 1 && **argv == '-') {
-        if (!strcmp(*argv, "-hex"))
+    // Parse command line arguments
+    while (argc >= 1 && argv[0][0] == '-') {
+        if (std::string(argv[0]) == "-hex")
             hex = 1;
-        else if (!strcmp(*argv, "-generate"))
+        else if (std::string(argv[0]) == "-generate")
             generate = 1;
-        else if (!strcmp(*argv, "-bits"))
-            if (--argc < 1)
-                goto bad;
-            else
-                bits = atoi(*++argv);
-        else if (!strcmp(*argv, "-safe"))
+        else if (std::string(argv[0]) == "-bits") {
+            if (--argc < 1) {
+                std::cerr << "Number of bits not specified" << std::endl;
+                return 1;
+            } else {
+                bits = std::stoi(argv[1]);
+                ++argv;
+            }
+        } else if (std::string(argv[0]) == "-safe")
             safe = 1;
-        else if (!strcmp(*argv, "-checks"))
-            if (--argc < 1)
-                goto bad;
-            else
-                checks = atoi(*++argv);
-        else {
-            BIO_printf(bio_err, "Unknown option '%s'\n", *argv);
-            goto bad;
+        else if (std::string(argv[0]) == "-checks") {
+            if (--argc < 1) {
+                std::cerr << "Number of checks not specified" << std::endl;
+                return 1;
+            } else {
+                checks = std::stoi(argv[1]);
+                ++argv;
+            }
+        } else {
+            std::cerr << "Unknown option '" << argv[0] << "'" << std::endl;
+            return 1;
         }
         --argc;
         ++argv;
     }
 
-    if (argv[0] == NULL && !generate) {
-        BIO_printf(bio_err, "No prime specified\n");
-        goto bad;
+    // Check if generating prime or testing prime
+    if (argv[0] == nullptr && !generate) {
+        std::cerr << "No prime specified" << std::endl;
+        return 1;
     }
 
-    if ((bio_out = BIO_new(BIO_s_file())) != NULL) {
-        BIO_set_fp(bio_out, stdout, BIO_NOCLOSE);
-#ifdef OPENSSL_SYS_VMS
-        {
-            BIO *tmpbio = BIO_new(BIO_f_linebuffer());
-            bio_out = BIO_push(tmpbio, bio_out);
-        }
-#endif
+    // Set up output
+    bio_out.reset(BIO_new_fp(stdout, BIO_NOCLOSE | BIO_FP_TEXT));
+    if (bio_out == nullptr) {
+        std::cerr << "Error setting up output" << std::endl;
+        return 1;
     }
 
+    // Generate prime or test prime
     if (generate) {
-        char *s;
-
-        if (!bits) {
-            BIO_printf(bio_err, "Specifiy the number of bits.\n");
+        if (bits == 0) {
+            std::cerr << "Number of bits not specified" << std::endl;
             return 1;
         }
-        bn = BN_new();
-        BN_generate_prime_ex(bn, bits, safe, NULL, NULL, NULL);
-        s = hex ? BN_bn2hex(bn) : BN_bn2dec(bn);
-        BIO_printf(bio_out, "%s\n", s);
+        bn.reset(BN_new());
+        if (!BN_generate_prime_ex(bn.get(), bits, safe, nullptr, nullptr, nullptr)) {
+            std::cerr << "Failed to generate prime" << std::endl;
+            return 1;
+        }
+        char* s = hex ? BN_bn2hex(bn.get()) : BN_bn2dec(bn.get());
+        BIO_printf(bio_out.get(), "%s\n", s);
         OPENSSL_free(s);
     } else {
         int r;
 
         if (hex)
-            r = BN_hex2bn(&bn, argv[0]);
+            r = BN_hex2bn(&bn.get(), argv[0]);
         else
-            r = BN_dec2bn(&bn, argv[0]);
+            r = BN_dec2bn(&bn.get(), argv[0]);
 
-        if(!r) {
-            BIO_printf(bio_err, "Failed to process value (%s)\n", argv[0]);
+        if (!r) {
+            std::cerr << "Failed to process value (" << argv[0] << ")" << std::endl;
             goto end;
         }
 
-        BN_print(bio_out, bn);
-        BIO_printf(bio_out, " is %sprime\n",
-                   BN_is_prime_ex(bn, checks, NULL, NULL) ? "" : "not ");
+        BN_print(bio_out.get(), bn.get());
+        BIO_printf(bio_out.get(), " is %sprime\n",
+                   BN_is_prime_ex(bn.get(), checks, nullptr, nullptr) ? "" : "not ");
     }
 
- end:
-    BN_free(bn);
-    BIO_free_all(bio_out);
-
+end:
     return 0;
 
- bad:
-    BIO_printf(bio_err, "options are\n");
-    BIO_printf(bio_err, "%-14s hex\n", "-hex");
-    BIO_printf(bio_err, "%-14s number of checks\n", "-checks <n>");
+bad:
+    BIO_printf(bio_err.get(), "options are\n");
+    BIO_printf(bio_err.get(), "%-14s hex\n", "-hex");
+    BIO_printf(bio_err.get(), "%-14s number of checks\n", "-checks <n>");
     return 1;
-}
