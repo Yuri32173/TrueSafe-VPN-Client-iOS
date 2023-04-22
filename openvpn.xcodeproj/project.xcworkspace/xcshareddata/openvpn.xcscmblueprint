@@ -24,7 +24,6 @@
     {
       "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/yuyao110120\/ShadowVPN-iOS.git",
       "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
-      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "7E43F853D729A9379DE22B64040705EC0E1E3C9A"
-    }
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "7E43F853D729A9379DE22B64040705EC0E1E3C9A"}
   ]
 }
