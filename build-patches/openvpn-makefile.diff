@@ -2,7 +2,7 @@
  openvpn$(EXEEXT): $(openvpn_OBJECTS) $(openvpn_DEPENDENCIES) $(EXTRA_openvpn_DEPENDENCIES) 
  	@rm -f openvpn$(EXEEXT)
 -	$(AM_V_CCLD)$(LINK) $(openvpn_OBJECTS) $(openvpn_LDADD) $(LIBS)
-+	libtool -static -o libopenvpn.a $(openvpn_OBJECTS)
+libtool -static -o libopenvpn.a $(openvpn_OBJECTS)
  
  mostlyclean-compile:
  	-rm -f *.$(OBJEXT)
