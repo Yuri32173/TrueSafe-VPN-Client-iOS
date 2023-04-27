@@ -1,10 +1,6 @@
 //
 //  main.m
 //  openvpn
-//
-//
-//
-
 #import <UIKit/UIKit.h>
 #import "AppDelegate.h"
 
