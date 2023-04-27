@@ -18,14 +18,14 @@
                         <viewControllerLayoutGuide type="bottom" id="1Pc-mk-ZFY"/>
                     </layoutGuides>
                     <view key="view" contentMode="scaleToFill" id="dij-NF-boG">
-                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <rect key="frame" x="0.0" y="0.0" width="395" height="680"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="JGZ-q9-2UX" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="108" y="-454"/>
+            <point key="canvasLocation" x="110" y="-450"/>
         </scene>
     </scenes>
 </document>
