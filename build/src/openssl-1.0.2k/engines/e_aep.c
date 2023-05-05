@@ -1027,7 +1027,6 @@ static AEP_RV aep_close_connection(AEP_CONNECTION_HNDL hConnection)
     CRYPTO_w_unlock(CRYPTO_LOCK_ENGINE);
     return rv;
 }
-
 static AEP_RV aep_close_all_connections(int use_engine_lock, int *in_use)
 {
     int count;
@@ -1036,23 +1035,25 @@ static AEP_RV aep_close_all_connections(int use_engine_lock, int *in_use)
     *in_use = 0;
     if (use_engine_lock)
         CRYPTO_w_lock(CRYPTO_LOCK_ENGINE);
+
     for (count = 0; count < MAX_PROCESS_CONNECTIONS; count++) {
         switch (aep_app_conn_table[count].conn_state) {
-        case Connected:
-            rv = p_AEP_CloseConnection(aep_app_conn_table[count].conn_hndl);
-            if (rv != AEP_R_OK)
-                goto end;
-            aep_app_conn_table[count].conn_state = NotConnected;
-            aep_app_conn_table[count].conn_hndl = 0;
-            break;
-        case InUse:
-            (*in_use)++;
-            break;
-        case NotConnected:
-            break;
+            case Connected:
+                rv = p_AEP_CloseConnection(aep_app_conn_table[count].conn_hndl);
+                if (rv != AEP_R_OK)
+                    goto end;
+                aep_app_conn_table[count].conn_state = NotConnected;
+                aep_app_conn_table[count].conn_hndl = 0;
+                break;
+            case InUse:
+                (*in_use)++;
+                break;
+            case NotConnected:
+                break;
         }
     }
- end:
+
+end:
     if (use_engine_lock)
         CRYPTO_w_unlock(CRYPTO_LOCK_ENGINE);
     return rv;
@@ -1060,7 +1061,7 @@ static AEP_RV aep_close_all_connections(int use_engine_lock, int *in_use)
 
 /*
  * BigNum call back functions, used to convert OpenSSL bignums into AEP
- * bignums. Note only 32bit Openssl build support
+ * bignums. Note only 32bit OpenSSL build support
  */
 
 static AEP_RV GetBigNumSize(AEP_VOID_PTR ArbBigNum, AEP_U32 *BigNumSize)
@@ -1072,15 +1073,15 @@ static AEP_RV GetBigNumSize(AEP_VOID_PTR ArbBigNum, AEP_U32 *BigNumSize)
      */
     bn = (BIGNUM *)ArbBigNum;
 
-#  ifdef SIXTY_FOUR_BIT_LONG
+#ifdef SIXTY_FOUR_BIT_LONG
     *BigNumSize = bn->top << 3;
-#  else
+#else
     /*
      * Size of the bignum in bytes is equal to the bn->top (no of 32 bit
-     * words) multiplies by 4
+     * words) multiplied by 4
      */
     *BigNumSize = bn->top << 2;
-#  endif
+#endif
 
     return AEP_R_OK;
 }
@@ -1090,19 +1091,19 @@ static AEP_RV MakeAEPBigNum(AEP_VOID_PTR ArbBigNum, AEP_U32 BigNumSize,
 {
     BIGNUM *bn;
 
-#  ifndef SIXTY_FOUR_BIT_LONG
+#ifndef SIXTY_FOUR_BIT_LONG
     unsigned char *buf;
     int i;
-#  endif
+#endif
 
     /*
      * Cast the ArbBigNum pointer to our BIGNUM struct
      */
     bn = (BIGNUM *)ArbBigNum;
 
-#  ifdef SIXTY_FOUR_BIT_LONG
+#ifdef SIXTY_FOUR_BIT_LONG
     memcpy(AEP_BigNum, bn->d, BigNumSize);
-#  else
+#else
     /*
      * Must copy data into a (monotone) least significant byte first format
      * performing endian conversion if necessary
@@ -1110,13 +1111,12 @@ static AEP_RV MakeAEPBigNum(AEP_VOID_PTR ArbBigNum, AEP_U32 BigNumSize,
     for (i = 0; i < bn->top; i++) {
         buf = (unsigned char *)&bn->d[i];
 
-        *((AEP_U32 *)AEP_BigNum) = (AEP_U32)
-            ((unsigned)buf[1] << 8 | buf[0]) |
-            ((unsigned)buf[3] << 8 | buf[2]) << 16;
+        *((AEP_U32 *)AEP_BigNum) = (AEP_U32)((unsigned)buf[1] << 8 | buf[0]) |
+                                   ((unsigned)buf[3] << 8 | buf[2]) << 16;
 
         AEP_BigNum += 4;
     }
-#  endif
+#endif
 
     return AEP_R_OK;
 }
@@ -1128,19 +1128,18 @@ static AEP_RV ConvertAEPBigNum(void *ArbBigNum, AEP_U32 BigNumSize,
                                unsigned char *AEP_BigNum)
 {
     BIGNUM *bn;
-#  ifndef SIXTY_FOUR_BIT_LONG
+#ifndef SIXTY_FOUR_BIT_LONG
     int i;
-#  endif
+#endif
 
     bn = (BIGNUM *)ArbBigNum;
-
     /*
      * Expand the result bn so that it can hold our big num. Size is in bits
      */
     if (bn_expand(bn, (int)(BigNumSize << 3)) == NULL)
         return AEP_R_HOST_MEMORY;
 
-#  ifdef SIXTY_FOUR_BIT_LONG
+#ifdef SIXTY_FOUR_BIT_LONG
     bn->top = BigNumSize >> 3;
 
     if ((BigNumSize & 7) != 0)
@@ -1149,19 +1148,22 @@ static AEP_RV ConvertAEPBigNum(void *ArbBigNum, AEP_U32 BigNumSize,
     memset(bn->d, 0, bn->top << 3);
 
     memcpy(bn->d, AEP_BigNum, BigNumSize);
-#  else
+#else
     bn->top = BigNumSize >> 2;
 
     for (i = 0; i < bn->top; i++) {
-        bn->d[i] = (AEP_U32)
-            ((unsigned)AEP_BigNum[3] << 8 | AEP_BigNum[2]) << 16 |
-            ((unsigned)AEP_BigNum[1] << 8 | AEP_BigNum[0]);
+        bn->d[i] = (AEP_U32)((unsigned)AEP_BigNum[3] << 8 | AEP_BigNum[2]) << 16 |
+                   ((unsigned)AEP_BigNum[1] << 8 | AEP_BigNum[0]);
         AEP_BigNum += 4;
     }
-#  endif
+#endif
 
     return AEP_R_OK;
 }
+
+   
+
+
 
 # endif                         /* !OPENSSL_NO_HW_AEP */
 #endif                          /* !OPENSSL_NO_HW */
