@@ -158,36 +158,28 @@ int app_RAND_load_file(const char *file, BIO *bio_e, int dont_warn)
     seeded = 1;
     return 1;
 }
-
-long app_RAND_load_files(char *name)
-{
-    char *p, *n;
-    int last;
+long app_RAND_load_files(char *name) {
     long tot = 0;
-    int egd;
 
-    for (;;) {
-        last = 0;
-        for (p = name; ((*p != '\0') && (*p != LIST_SEPARATOR_CHAR)); p++) ;
-        if (*p == '\0')
-            last = 1;
-        *p = '\0';
-        n = name;
-        name = p + 1;
-        if (*n == '\0')
-            break;
-
-        egd = RAND_egd(n);
-        if (egd > 0)
+    for (char *p = name, *n = name; *n != '\0'; n = p + 1) {
+        p = strchr(n, LIST_SEPARATOR_CHAR);
+        if (p != NULL) {
+            *p = '\0';
+        }
+        int egd = RAND_egd(n);
+        if (egd > 0) {
             tot += egd;
-        else
+        } else {
             tot += RAND_load_file(n, -1);
-        if (last)
+        }
+        if (p == NULL) {
             break;
+        }
     }
-    if (tot > 512)
+    if (tot > 512) {
         app_RAND_allow_write_file();
-    return (tot);
+    }
+    return tot;
 }
 
 int app_RAND_write_file(const char *file, BIO *bio_e)
