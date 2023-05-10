@@ -205,41 +205,40 @@ void MacSocket_SetUserRefPtr(const int inSocketNum,void *inNewRefPtr)
 }
 
 
-
-void MacSocket_GetLocalIPAndPort(const int inSocketNum,char *outIPAndPort,const int inIPAndPortLength)
+void MacSocket_GetLocalIPAndPort(const int inSocketNum, char* outIPAndPort, const int inIPAndPortLength)
 {
-	if (outIPAndPort != nil && SocketIndexIsValid(inSocketNum))
-	{
-	char			tempString[256];
-	SocketStruct	*theSocketStruct = &(sSockets[inSocketNum]);
-	
-		
-		CopyCStrToCStr("",tempString,sizeof(tempString));
+    if (outIPAndPort == nullptr || !SocketIndexIsValid(inSocketNum)) {
+        return;
+    }
 
-		if (theSocketStruct->mAssignedAddrInfo != nil)
-		{
-		InetAddress		*theInetAddress = (InetAddress *) theSocketStruct->mAssignedAddrInfo->addr.buf;
-		InetHost		theInetHost = theInetAddress->fHost;
-			
-			if (theInetHost == 0)
-			{
-			InetInterfaceInfo	theInetInterfaceInfo;
-				
-				if (::OTInetGetInterfaceInfo(&theInetInterfaceInfo,kDefaultInetInterface) == noErr)
-				{
-					theInetHost = theInetInterfaceInfo.fAddress;
-				}
-			}
-		
-			::OTInetHostToString(theInetHost,tempString);
-			
-			ConcatCStrToCStr(":",tempString,sizeof(tempString));
-			ConcatLongIntToCStr(theInetAddress->fPort,tempString,sizeof(tempString));
-		}
-		
-		CopyCStrToCStr(tempString,outIPAndPort,inIPAndPortLength);
-	}
+    SocketStruct* theSocketStruct = &sSockets[inSocketNum];
+
+    std::string ipAndPort;
+
+    if (theSocketStruct->mAssignedAddrInfo != nullptr) {
+        InetAddress* theInetAddress = reinterpret_cast<InetAddress*>(theSocketStruct->mAssignedAddrInfo->addr.buf);
+        InetHost theInetHost = theInetAddress->fHost;
+
+        if (theInetHost == 0) {
+            InetInterfaceInfo theInetInterfaceInfo;
+            if (::OTInetGetInterfaceInfo(&theInetInterfaceInfo, kDefaultInetInterface) == noErr) {
+                theInetHost = theInetInterfaceInfo.fAddress;
+            }
+        }
+
+        char ipAddress[INET_ADDRSTRLEN];
+        if (::OTInetHostToString(theInetHost, ipAddress) == noErr) {
+            ipAndPort = ipAddress;
+            ipAndPort += ':';
+            ipAndPort += std::to_string(theInetAddress->fPort);
+        }
+    }
+
+    size_t copyLength = std::min(ipAndPort.length(), static_cast<size_t>(inIPAndPortLength - 1));
+    std::copy_n(ipAndPort.c_str(), copyLength, outIPAndPort);
+    outIPAndPort[copyLength] = '\0';
 }
+
 
 
 
