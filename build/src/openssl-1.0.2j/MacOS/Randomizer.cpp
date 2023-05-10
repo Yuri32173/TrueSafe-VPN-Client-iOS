@@ -213,34 +213,36 @@ unsigned long GetPPCTimer (bool is601);	// Make it global if needed
 
 /*------------------------ Function definitions ----------------------*/
 
-CRandomizer::CRandomizer (void)
+CRandomizer::CRandomizer()
 {
-	long	result;
-	
-	mSupportsLargeVolumes =
-		(Gestalt(gestaltFSAttr, &result) == noErr) &&
-		((result & (1L << gestaltFSSupports2TBVols)) != 0);
-	
-	if (Gestalt (gestaltNativeCPUtype, &result) != noErr)
-	{
-		mIsPowerPC = false;
-		mIs601 = false;
-	}
-	else
-	{
-		mIs601 = (result == gestaltCPU601);
-		mIsPowerPC = (result >= gestaltCPU601);
-	}
-	mLastMouse.h = mLastMouse.v = -10;	// First mouse will
-						// always be recorded
-	mLastPeriodicTicks = TickCount();
-	GetTimeBaseResolution ();
-	
-	// Add initial entropy
-	AddTimeSinceMachineStartup ();
-	AddAbsoluteSystemStartupTime ();
-	AddStartupVolumeInfo ();
-	AddFiller ();
+    mSupportsLargeVolumes = false;
+    long result;
+
+    if (Gestalt(gestaltFSAttr, &result) == noErr && (result & (1L << gestaltFSSupports2TBVols)))
+    {
+        mSupportsLargeVolumes = true;
+    }
+
+    if (Gestalt(gestaltNativeCPUtype, &result) == noErr)
+    {
+        mIs601 = result == gestaltCPU601;
+        mIsPowerPC = result >= gestaltCPU601;
+    }
+    else
+    {
+        mIs601 = false;
+        mIsPowerPC = false;
+    }
+
+    mLastMouse = {-10, -10};
+    mLastPeriodicTicks = TickCount();
+    GetTimeBaseResolution();
+
+    // Add initial entropy
+    AddTimeSinceMachineStartup();
+    AddAbsoluteSystemStartupTime();
+    AddStartupVolumeInfo();
+    AddFiller();
 }
 
 void CRandomizer::PeriodicAction (void)
