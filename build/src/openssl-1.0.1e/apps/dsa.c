@@ -126,46 +126,42 @@ int MAIN(int argc, char **argv)
 #ifndef OPENSSL_NO_ENGINE
 	engine=NULL;
 #endif
-	infile=NULL;
-	outfile=NULL;
-	informat=FORMAT_PEM;
-	outformat=FORMAT_PEM;
 
-	prog=argv[0];
-	argc--;
-	argv++;
-	while (argc >= 1)
-		{
-		if 	(strcmp(*argv,"-inform") == 0)
-			{
-			if (--argc < 1) goto bad;
-			informat=str2fmt(*(++argv));
-			}
-		else if (strcmp(*argv,"-outform") == 0)
-			{
-			if (--argc < 1) goto bad;
-			outformat=str2fmt(*(++argv));
-			}
-		else if (strcmp(*argv,"-in") == 0)
-			{
-			if (--argc < 1) goto bad;
-			infile= *(++argv);
-			}
-		else if (strcmp(*argv,"-out") == 0)
-			{
-			if (--argc < 1) goto bad;
-			outfile= *(++argv);
-			}
-		else if (strcmp(*argv,"-passin") == 0)
-			{
-			if (--argc < 1) goto bad;
-			passargin= *(++argv);
-			}
-		else if (strcmp(*argv,"-passout") == 0)
-			{
-			if (--argc < 1) goto bad;
-			passargout= *(++argv);
-			}
+infile = NULL;
+outfile = NULL;
+informat = FORMAT_PEM;
+outformat = FORMAT_PEM;
+
+prog = argv[0];
+argc--;
+argv++;
+while (argc >= 1) {
+    if (strcmp(*argv, "-inform") == 0) {
+        if (--argc < 1)
+            goto bad;
+        informat = str2fmt(*(++argv));
+    } else if (strcmp(*argv, "-outform") == 0) {
+        if (--argc < 1)
+            goto bad;
+        outformat = str2fmt(*(++argv));
+    } else if (strcmp(*argv, "-in") == 0) {
+        if (--argc < 1)
+            goto bad;
+        infile = *(++argv);
+    } else if (strcmp(*argv, "-out") == 0) {
+        if (--argc < 1)
+            goto bad;
+        outfile = *(++argv);
+    } else if (strcmp(*argv, "-passin") == 0) {
+        if (--argc < 1)
+            goto bad;
+        passargin = *(++argv);
+    } else if (strcmp(*argv, "-passout") == 0) {
+        if (--argc < 1)
+            goto bad;
+        passargout = *(++argv);
+    }
+
 #ifndef OPENSSL_NO_ENGINE
 		else if (strcmp(*argv,"-engine") == 0)
 			{
