@@ -61,42 +61,17 @@
 #include <openssl/crypto.h>
 #include "cryptlib.h"
 
+static int allow_customize = 1;
+static int allow_customize_debug = 1;
 
-static int allow_customize = 1;      /* we provide flexible functions for */
-static int allow_customize_debug = 1;/* exchanging memory-related functions at
-                                      * run-time, but this must be done
-                                      * before any blocks are actually
-                                      * allocated; or we'll run into huge
-                                      * problems when malloc/free pairs
-                                      * don't match etc. */
-
-
-
-/* the following pointers may be changed as long as 'allow_customize' is set */
-
-static void *(*malloc_func)(size_t)         = malloc;
-static void *default_malloc_ex(size_t num, const char *file, int line)
-	{ return malloc_func(num); }
-static void *(*malloc_ex_func)(size_t, const char *file, int line)
-        = default_malloc_ex;
-
-static void *(*realloc_func)(void *, size_t)= realloc;
-static void *default_realloc_ex(void *str, size_t num,
-        const char *file, int line)
-	{ return realloc_func(str,num); }
-static void *(*realloc_ex_func)(void *, size_t, const char *file, int line)
-        = default_realloc_ex;
-
-static void (*free_func)(void *)            = free;
-
-static void *(*malloc_locked_func)(size_t)  = malloc;
-static void *default_malloc_locked_ex(size_t num, const char *file, int line)
-	{ return malloc_locked_func(num); }
-static void *(*malloc_locked_ex_func)(size_t, const char *file, int line)
-        = default_malloc_locked_ex;
-
-static void (*free_locked_func)(void *)     = free;
-
+static void *(*malloc_func)(size_t) = malloc;
+static void *(*malloc_ex_func)(size_t, const char *, int) = malloc;
+static void *(*realloc_func)(void *, size_t) = realloc;
+static void *(*realloc_ex_func)(void *, size_t, const char *, int) = realloc;
+static void (*free_func)(void *) = free;
+static void *(*malloc_locked_func)(size_t) = malloc;
+static void *(*malloc_locked_ex_func)(size_t, const char *, int) = malloc;
+static void (*free_locked_func)(void *) = free;
 
 
 /* may be changed as long as 'allow_customize_debug' is set */
