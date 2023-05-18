@@ -172,58 +172,66 @@ static EVP_PKEY *load_netscape_key(BIO *err, BIO *key, const char *file,
 int app_init(long mesgwin);
 #ifdef undef                    /* never finished - probably never will be
                                  * :-) */
-int args_from_file(char *file, int *argc, char **argv[])
+int args_from_file(const char *file, int *argc, char ***argv)
 {
     FILE *fp;
-    int num, i;
-    unsigned int len;
-    static char *buf = NULL;
-    static char **arg = NULL;
+    long len;
+    char *buf = NULL;
+    char **arg = NULL;
     char *p;
+    int num = 0;
+    int i;
 
     fp = fopen(file, "r");
     if (fp == NULL)
-        return (0);
+        return 0;
 
     if (fseek(fp, 0, SEEK_END) == 0)
-        len = ftell(fp), rewind(fp);
+    {
+        len = ftell(fp);
+        rewind(fp);
+    }
     else
+    {
         len = -1;
-    if (len <= 0) {
+    }
+    if (len <= 0)
+    {
         fclose(fp);
-        return (0);
+        return 0;
     }
 
     *argc = 0;
     *argv = NULL;
 
-    if (buf != NULL)
-        OPENSSL_free(buf);
-    buf = (char *)OPENSSL_malloc(len + 1);
+    buf = (char *)malloc(len + 1);
     if (buf == NULL)
-        return (0);
+        return 0;
 
     len = fread(buf, 1, len, fp);
     if (len <= 1)
-        return (0);
+        return 0;
     buf[len] = '\0';
 
     i = 0;
     for (p = buf; *p; p++)
+    {
         if (*p == '\n')
             i++;
-    if (arg != NULL)
-        OPENSSL_free(arg);
-    arg = (char **)OPENSSL_malloc(sizeof(char *) * (i * 2));
+    }
+    arg = (char **)malloc(sizeof(char *) * (i * 2));
     if (arg == NULL)
         return 0;
     *argv = arg;
+
     num = 0;
     p = buf;
-    for (;;) {
+    for (;;)
+    {
         if (!*p)
             break;
-        if (*p == '#') {        /* comment line */
+        if (*p == '#') /* comment line */
+        {
             while (*p && (*p != '\n'))
                 p++;
             continue;
@@ -235,7 +243,8 @@ int args_from_file(char *file, int *argc, char **argv[])
             p++;
         if (!*p)
             break;
-        if (*p == '\n') {
+        if (*p == '\n')
+        {
             *(p++) = '\0';
             continue;
         }
@@ -245,7 +254,8 @@ int args_from_file(char *file, int *argc, char **argv[])
             p++;
         if (!*p)
             break;
-        if (*p == '\n') {
+        if (*p == '\n')
+        {
             p++;
             continue;
         }
@@ -259,7 +269,7 @@ int args_from_file(char *file, int *argc, char **argv[])
         *(p++) = '\0';
     }
     *argc = num;
-    return (1);
+    return 1;
 }
 #endif
 
