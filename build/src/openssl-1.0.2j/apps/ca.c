@@ -345,167 +345,7 @@ int MAIN(int argc, char **argv)
 
     argc--;
     argv++;
-    while (argc >= 1) {
-        if (strcmp(*argv, "-verbose") == 0)
-            verbose = 1;
-        else if (strcmp(*argv, "-config") == 0) {
-            if (--argc < 1)
-                goto bad;
-            configfile = *(++argv);
-        } else if (strcmp(*argv, "-name") == 0) {
-            if (--argc < 1)
-                goto bad;
-            section = *(++argv);
-        } else if (strcmp(*argv, "-subj") == 0) {
-            if (--argc < 1)
-                goto bad;
-            subj = *(++argv);
-            /* preserve=1; */
-        } else if (strcmp(*argv, "-utf8") == 0)
-            chtype = MBSTRING_UTF8;
-        else if (strcmp(*argv, "-create_serial") == 0)
-            create_ser = 1;
-        else if (strcmp(*argv, "-multivalue-rdn") == 0)
-            multirdn = 1;
-        else if (strcmp(*argv, "-startdate") == 0) {
-            if (--argc < 1)
-                goto bad;
-            startdate = *(++argv);
-        } else if (strcmp(*argv, "-enddate") == 0) {
-            if (--argc < 1)
-                goto bad;
-            enddate = *(++argv);
-        } else if (strcmp(*argv, "-days") == 0) {
-            if (--argc < 1)
-                goto bad;
-            days = atoi(*(++argv));
-        } else if (strcmp(*argv, "-md") == 0) {
-            if (--argc < 1)
-                goto bad;
-            md = *(++argv);
-        } else if (strcmp(*argv, "-policy") == 0) {
-            if (--argc < 1)
-                goto bad;
-            policy = *(++argv);
-        } else if (strcmp(*argv, "-keyfile") == 0) {
-            if (--argc < 1)
-                goto bad;
-            keyfile = *(++argv);
-        } else if (strcmp(*argv, "-keyform") == 0) {
-            if (--argc < 1)
-                goto bad;
-            keyform = str2fmt(*(++argv));
-        } else if (strcmp(*argv, "-passin") == 0) {
-            if (--argc < 1)
-                goto bad;
-            passargin = *(++argv);
-        } else if (strcmp(*argv, "-key") == 0) {
-            if (--argc < 1)
-                goto bad;
-            key = *(++argv);
-        } else if (strcmp(*argv, "-cert") == 0) {
-            if (--argc < 1)
-                goto bad;
-            certfile = *(++argv);
-        } else if (strcmp(*argv, "-selfsign") == 0)
-            selfsign = 1;
-        else if (strcmp(*argv, "-in") == 0) {
-            if (--argc < 1)
-                goto bad;
-            infile = *(++argv);
-            req = 1;
-        } else if (strcmp(*argv, "-out") == 0) {
-            if (--argc < 1)
-                goto bad;
-            outfile = *(++argv);
-        } else if (strcmp(*argv, "-outdir") == 0) {
-            if (--argc < 1)
-                goto bad;
-            outdir = *(++argv);
-        } else if (strcmp(*argv, "-sigopt") == 0) {
-            if (--argc < 1)
-                goto bad;
-            if (!sigopts)
-                sigopts = sk_OPENSSL_STRING_new_null();
-            if (!sigopts || !sk_OPENSSL_STRING_push(sigopts, *(++argv)))
-                goto bad;
-        } else if (strcmp(*argv, "-notext") == 0)
-            notext = 1;
-        else if (strcmp(*argv, "-batch") == 0)
-            batch = 1;
-        else if (strcmp(*argv, "-preserveDN") == 0)
-            preserve = 1;
-        else if (strcmp(*argv, "-noemailDN") == 0)
-            email_dn = 0;
-        else if (strcmp(*argv, "-gencrl") == 0)
-            gencrl = 1;
-        else if (strcmp(*argv, "-msie_hack") == 0)
-            msie_hack = 1;
-        else if (strcmp(*argv, "-crldays") == 0) {
-            if (--argc < 1)
-                goto bad;
-            crldays = atol(*(++argv));
-        } else if (strcmp(*argv, "-crlhours") == 0) {
-            if (--argc < 1)
-                goto bad;
-            crlhours = atol(*(++argv));
-        } else if (strcmp(*argv, "-crlsec") == 0) {
-            if (--argc < 1)
-                goto bad;
-            crlsec = atol(*(++argv));
-        } else if (strcmp(*argv, "-infiles") == 0) {
-            argc--;
-            argv++;
-            req = 1;
-            break;
-        } else if (strcmp(*argv, "-ss_cert") == 0) {
-            if (--argc < 1)
-                goto bad;
-            ss_cert_file = *(++argv);
-            req = 1;
-        } else if (strcmp(*argv, "-spkac") == 0) {
-            if (--argc < 1)
-                goto bad;
-            spkac_file = *(++argv);
-            req = 1;
-        } else if (strcmp(*argv, "-revoke") == 0) {
-            if (--argc < 1)
-                goto bad;
-            infile = *(++argv);
-            dorevoke = 1;
-        } else if (strcmp(*argv, "-valid") == 0) {
-            if (--argc < 1)
-                goto bad;
-            infile = *(++argv);
-            dorevoke = 2;
-        } else if (strcmp(*argv, "-extensions") == 0) {
-            if (--argc < 1)
-                goto bad;
-            extensions = *(++argv);
-        } else if (strcmp(*argv, "-extfile") == 0) {
-            if (--argc < 1)
-                goto bad;
-            extfile = *(++argv);
-        } else if (strcmp(*argv, "-status") == 0) {
-            if (--argc < 1)
-                goto bad;
-            ser_status = *(++argv);
-        } else if (strcmp(*argv, "-updatedb") == 0) {
-            doupdatedb = 1;
-        } else if (strcmp(*argv, "-crlexts") == 0) {
-            if (--argc < 1)
-                goto bad;
-            crl_ext = *(++argv);
-        } else if (strcmp(*argv, "-crl_reason") == 0) {
-            if (--argc < 1)
-                goto bad;
-            rev_arg = *(++argv);
-            rev_type = REV_CRL_REASON;
-        } else if (strcmp(*argv, "-crl_hold") == 0) {
-            if (--argc < 1)
-                goto bad;
-            rev_arg = *(++argv);
-            rev_type = REV_HOLD;
+    
         } else if (strcmp(*argv, "-crl_compromise") == 0) {
             if (--argc < 1)
                 goto bad;
@@ -513,10 +353,214 @@ int MAIN(int argc, char **argv)
             rev_type = REV_KEY_COMPROMISE;
         } else if (strcmp(*argv, "-crl_CA_compromise") == 0) {
             if (--argc < 1)
-                goto bad;
-            rev_arg = *(++argv);
-            rev_type = REV_CA_COMPROMISE;
+                gotwhile (argc >= 1) {
+    if (strcmp(*argv, "-verbose") == 0) {
+        verbose = 1;
+    } else if (strcmp(*argv, "-config") == 0) {
+        if (--argc < 1) {
+            goto bad;
         }
+        configfile = *(++argv);
+    } else if (strcmp(*argv, "-name") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        section = *(++argv);
+    } else if (strcmp(*argv, "-subj") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        subj = *(++argv);
+        /* preserve=1; */
+    } else if (strcmp(*argv, "-utf8") == 0) {
+        chtype = MBSTRING_UTF8;
+    } else if (strcmp(*argv, "-create_serial") == 0) {
+        create_ser = 1;
+    } else if (strcmp(*argv, "-multivalue-rdn") == 0) {
+        multirdn = 1;
+    } else if (strcmp(*argv, "-startdate") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        startdate = *(++argv);
+    } else if (strcmp(*argv, "-enddate") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        enddate = *(++argv);
+    } else if (strcmp(*argv, "-days") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        days = atoi(*(++argv));
+    } else if (strcmp(*argv, "-md") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        md = *(++argv);
+    } else if (strcmp(*argv, "-policy") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        policy = *(++argv);
+    } else if (strcmp(*argv, "-keyfile") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        keyfile = *(++argv);
+    } else if (strcmp(*argv, "-keyform") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        keyform = str2fmt(*(++argv));
+    } else if (strcmp(*argv, "-passin") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        passargin = *(++argv);
+    } else if (strcmp(*argv, "-key") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        key = *(++argv);
+    } else if (strcmp(*argv, "-cert") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        certfile = *(++argv);
+    } else if (strcmp(*argv, "-selfsign") == 0) {
+        selfsign = 1;
+    } else if (strcmp(*argv, "-in") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        infile = *(++argv);
+        req = 1;
+    } else if (strcmp(*argv, "-out") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        outfile = *(++argv);
+    } else if (strcmp(*argv, "-outdir") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        outdir = *(++argv);
+    } else if (strcmp(*argv, "-sigopt") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        if (!sigopts) {
+            sigopts = sk_OPENSSL_STRING_new_null();
+        }
+        if (!sigopts || !sk_OPENSSL_STRING_push(sigopts, *(++argv))) {
+            goto bad;
+        }
+    } else if (strcmp(*argv, "-notext") == 0) {
+        notext = 1;
+    } else if (strcmp(*argv, "-batch") == 0) {
+        batch = 1;
+    } else if (strcmp(*argv, "-preserveDN") == 0) {
+        preserve = 1;
+    } else if (strcmp(*argv, "-noemailDN") == 0) {
+        email_dn = 0;
+    } else if (strcmp(*argv, "-gencrl") == 0) {
+        gencrl = 1;
+    } else if (strcmp(*argv, "-msie_hack") == 0) {
+        msie_hack = 1;
+    } else if (strcmp(*argv, "-crldays") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        crldays = atol(*(++argv));
+    } else if (strcmp(*argv, "-crlhours") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        crlhours = atol(*(++argv));
+    } else if (strcmp(*argv, "-crlsec") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        crlsec = atol(*(++argv));
+    } else if (strcmp(*argv, "-infiles") == 0) {
+        argc--;
+        argv++;
+        req = 1;
+        break;
+    } else if (strcmp(*argv, "-ss_cert") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        ss_cert_file = *(++argv);
+        req = 1;
+    } else if (strcmp(*argv, "-spkac") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        spkac_file = *(++argv);
+        req = 1;
+    } else if (strcmp(*argv, "-revoke") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        infile = *(++argv);
+        dorevoke = 1;
+    } else if (strcmp(*argv, "-valid") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        infile = *(++argv);
+        dorevoke = 2;
+    } else if (strcmp(*argv, "-extensions") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        extensions = *(++argv);
+    } else if (strcmp(*argv, "-extfile") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        extfile = *(++argv);
+    } else if (strcmp(*argv, "-status") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        ser_status = *(++argv);
+    } else if (strcmp(*argv, "-updatedb") == 0) {
+        doupdatedb = 1;
+    } else if (strcmp(*argv, "-crlexts") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        crl_ext = *(++argv);
+    } else if (strcmp(*argv, "-crl_reason") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        rev_arg = *(++argv);
+        rev_type = REV_CRL_REASON;
+    } else if (strcmp(*argv, "-crl_hold") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        rev_arg = *(++argv);
+        rev_type = REV_HOLD;
+    } else if (strcmp(*argv, "-crl_compromise") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        rev_arg = *(++argv);
+        rev_type = REV_KEY_COMPROMISE;
+    } else if (strcmp(*argv, "-crl_CA_compromise") == 0) {
+        if (--argc < 1) {
+            goto bad;
+        }
+        rev_arg = *(++argv);
+        rev_type = REV_CA_COMPROMISE;
+    }
+}
+
 #ifndef OPENSSL_NO_ENGINE
         else if (strcmp(*argv, "-engine") == 0) {
             if (--argc < 1)
