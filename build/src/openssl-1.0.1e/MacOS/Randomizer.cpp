@@ -213,83 +213,81 @@ unsigned long GetPPCTimer (bool is601);	// Make it global if needed
 
 /*------------------------ Function definitions ----------------------*/
 
-CRandomizer::CRandomizer (void)
+CRandomizer::CRandomizer()
 {
-	long	result;
+    long result;
 	
-	mSupportsLargeVolumes =
-		(Gestalt(gestaltFSAttr, &result) == noErr) &&
-		((result & (1L << gestaltFSSupports2TBVols)) != 0);
+    mSupportsLargeVolumes = (Gestalt(gestaltFSAttr, &result) == noErr) &&
+                            ((result & (1L << gestaltFSSupports2TBVols)) != 0);
 	
-	if (Gestalt (gestaltNativeCPUtype, &result) != noErr)
-	{
-		mIsPowerPC = false;
-		mIs601 = false;
-	}
-	else
-	{
-		mIs601 = (result == gestaltCPU601);
-		mIsPowerPC = (result >= gestaltCPU601);
-	}
-	mLastMouse.h = mLastMouse.v = -10;	// First mouse will
-						// always be recorded
-	mLastPeriodicTicks = TickCount();
-	GetTimeBaseResolution ();
+    if (Gestalt(gestaltNativeCPUtype, &result) != noErr)
+    {
+        mIsPowerPC = false;
+        mIs601 = false;
+    }
+    else
+    {
+        mIs601 = (result == gestaltCPU601);
+        mIsPowerPC = (result >= gestaltCPU601);
+    }
+    mLastMouse.h = mLastMouse.v = -10;  // First mouse will always be recorded
+    mLastPeriodicTicks = TickCount();
+    GetTimeBaseResolution();
 	
-	// Add initial entropy
-	AddTimeSinceMachineStartup ();
-	AddAbsoluteSystemStartupTime ();
-	AddStartupVolumeInfo ();
-	AddFiller ();
+    // Add initial entropy
+    AddTimeSinceMachineStartup();
+    AddAbsoluteSystemStartupTime();
+    AddStartupVolumeInfo();
+    AddFiller();
 }
 
-void CRandomizer::PeriodicAction (void)
+void CRandomizer::PeriodicAction()
 {
-	AddCurrentMouse ();
-	AddNow (0.0);	// Should have a better entropy estimate here
-	mLastPeriodicTicks = TickCount();
+    AddCurrentMouse();
+    AddNow(0.0);  // Should have a better entropy estimate here
+    mLastPeriodicTicks = TickCount();
 }
 
 /*------------------------- Private Methods --------------------------*/
 
-void CRandomizer::AddCurrentMouse (void)
+void CRandomizer::AddCurrentMouse()
 {
-	Point mouseLoc;
-	unsigned long lastCheck;	// Ticks since mouse was last
-					// sampled
+    Point mouseLoc;
+    unsigned long lastCheck;  // Ticks since mouse was last sampled
 
 #if TARGET_API_MAC_CARBON
-	GetGlobalMouse (&mouseLoc);
+    GetGlobalMouse(&mouseLoc);
 #else
-	mouseLoc = LMGetMouseLocation();
+    mouseLoc = LMGetMouseLocation();
 #endif
 	
-	if (labs (mLastMouse.h - mouseLoc.h) > kMouseResolution/2 &&
-	    labs (mLastMouse.v - mouseLoc.v) > kMouseResolution/2)
-		AddBytes (&mouseLoc, sizeof (mouseLoc),
-				kMousePositionEntropy);
+    if (std::abs(mLastMouse.h - mouseLoc.h) > kMouseResolution / 2 &&
+        std::abs(mLastMouse.v - mouseLoc.v) > kMouseResolution / 2)
+    {
+        AddBytes(&mouseLoc, sizeof(mouseLoc), kMousePositionEntropy);
+    }
 	
-	if (mLastMouse.h == mouseLoc.h && mLastMouse.v == mouseLoc.v)
-		mMouseStill ++;
-	else
-	{
-		double entropy;
+    if (mLastMouse.h == mouseLoc.h && mLastMouse.v == mouseLoc.v)
+    {
+        mMouseStill++;
+    }
+    else
+    {
+        double entropy;
 		
-		// Mouse has moved. Add the number of measurements for
-		// which it's been still. If the resolution is too
-		// coarse, assume the entropy is 0.
+        // Mouse has moved. Add the number of measurements for
+        // which it's been still. If the resolution is too coarse, assume the entropy is 0.
 
-		lastCheck = TickCount() - mLastPeriodicTicks;
-		if (lastCheck <= 0)
-			lastCheck = 1;
-		entropy = log2l
-			(kTypicalMouseIdleTicks/(double)lastCheck);
-		if (entropy < 0.0)
-			entropy = 0.0;
-		AddBytes (&mMouseStill, sizeof (mMouseStill), entropy);
-		mMouseStill = 0;
-	}
-	mLastMouse = mouseLoc;
+        lastCheck = TickCount() - mLastPeriodicTicks;
+        if (lastCheck <= 0)
+            lastCheck = 1;
+        entropy = std::log2(kTypicalMouseIdleTicks / static_cast<double>(lastCheck));
+        if (entropy < 0.0)
+            entropy = 0.0;
+        AddBytes(&mMouseStill, sizeof(mMouseStill), entropy);
+        mMouseStill = 0;
+    }
+    mLastMouse = mouseLoc;
 }
 
 void CRandomizer::AddAbsoluteSystemStartupTime (void)
