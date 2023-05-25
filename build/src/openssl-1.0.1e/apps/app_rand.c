@@ -162,55 +162,64 @@ int app_RAND_load_file(const char *file, BIO *bio_e, int dont_warn)
 	return 1;
 	}
 
-long app_RAND_load_files(char *name)
-	{
-	char *p,*n;
-	int last;
-	long tot=0;
-	int egd;
-	
-	for (;;)
-		{
-		last=0;
-		for (p=name; ((*p != '\0') && (*p != LIST_SEPARATOR_CHAR)); p++);
-		if (*p == '\0') last=1;
-		*p='\0';
-		n=name;
-		name=p+1;
-		if (*n == '\0') break;
 
-		egd=RAND_egd(n);
-		if (egd > 0)
-			tot+=egd;
-		else
-			tot+=RAND_load_file(n,-1);
-		if (last) break;
-		}
-	if (tot > 512)
-		app_RAND_allow_write_file();
-	return(tot);
-	}
+long app_RAND_load_files(char *name)
+{
+    char *p, *n;
+    int last;
+    long tot = 0;
+    int egd;
+
+    for (;;)
+    {
+        last = 0;
+        for (p = name; ((*p != '\0') && (*p != LIST_SEPARATOR_CHAR)); p++)
+            ;
+        if (*p == '\0')
+            last = 1;
+        *p = '\0';
+        n = name;
+        name = p + 1;
+        if (*n == '\0')
+            break;
+
+        egd = RAND_egd(n);
+        if (egd > 0)
+            tot += egd;
+        else
+            tot += RAND_load_file(n, -1);
+        if (last)
+            break;
+    }
+    if (tot > 512)
+        app_RAND_allow_write_file();
+    return tot;
+}
 
 int app_RAND_write_file(const char *file, BIO *bio_e)
-	{
-	char buffer[200];
-	
-	if (egdsocket || !seeded)
-		/* If we did not manage to read the seed file,
-		 * we should not write a low-entropy seed file back --
-		 * it would suppress a crucial warning the next time
-		 * we want to use it. */
-		return 0;
+{
+    char buffer[200];
 
-	if (file == NULL)
-		file = RAND_file_name(buffer, sizeof buffer);
-	if (file == NULL || !RAND_write_file(file))
-		{
-		BIO_printf(bio_e,"unable to write 'random state'\n");
-		return 0;
-		}
-	return 1;
-	}
+    if (egdsocket || !seeded)
+    {
+        // If we did not manage to read the seed file,
+        // we should not write a low-entropy seed file back -
+        // it would suppress a crucial warning the next time
+        // we want to use it.
+        return 0;
+    }
+
+    if (file == NULL)
+    {
+        file = RAND_file_name(buffer, sizeof(buffer));
+    }
+    if (file == NULL || !RAND_write_file(file))
+    {
+        BIO_printf(bio_e, "unable to write 'random state'\n");
+        return 0;
+    }
+    return 1;
+}
 
 void app_RAND_allow_write_file(void)
 	{
