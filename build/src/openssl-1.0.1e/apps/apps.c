@@ -172,88 +172,104 @@ load_netscape_key(BIO *err, BIO *key, const char *file,
 
 int app_init(long mesgwin);
 #ifdef undef /* never finished - probably never will be :-) */
-int args_from_file(char *file, int *argc, char **argv[])
-	{
-	FILE *fp;
-	int num,i;
-	unsigned int len;
-	static char *buf=NULL;
-	static char **arg=NULL;
-	char *p;
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-	fp=fopen(file,"r");
-	if (fp == NULL)
-		return(0);
+int args_from_file(char *file, int *argc, char ***argv)
+{
+    FILE *fp;
+    int num = 0, i = 0;
+    long len;
+    static char *buf = NULL;
+    static char **arg = NULL;
+    char *p;
 
-	if (fseek(fp,0,SEEK_END)==0)
-		len=ftell(fp), rewind(fp);
-	else	len=-1;
-	if (len<=0)
-		{
-		fclose(fp);
-		return(0);
-		}
+    fp = fopen(file, "r");
+    if (fp == NULL)
+        return 0;
 
-	*argc=0;
-	*argv=NULL;
+    if (fseek(fp, 0, SEEK_END) == 0)
+        len = ftell(fp);
+    else
+        len = -1;
+    rewind(fp);
+    if (len <= 0)
+    {
+        fclose(fp);
+        return 0;
+    }
 
-	if (buf != NULL) OPENSSL_free(buf);
-	buf=(char *)OPENSSL_malloc(len+1);
-	if (buf == NULL) return(0);
+    *argc = 0;
+    *argv = NULL;
 
-	len=fread(buf,1,len,fp);
-	if (len <= 1) return(0);
-	buf[len]='\0';
+    if (buf != NULL)
+        free(buf);
+    buf = (char *)malloc(len + 1);
+    if (buf == NULL)
+        return 0;
 
-	i=0;
-	for (p=buf; *p; p++)
-		if (*p == '\n') i++;
-	if (arg != NULL) OPENSSL_free(arg);
-	arg=(char **)OPENSSL_malloc(sizeof(char *)*(i*2));
+    len = fread(buf, 1, len, fp);
+    if (len <= 1)
+        return 0;
+    buf[len] = '\0';
 
-	*argv=arg;
-	num=0;
-	p=buf;
-	for (;;)
-		{
-		if (!*p) break;
-		if (*p == '#') /* comment line */
-			{
-			while (*p && (*p != '\n')) p++;
-			continue;
-			}
-		/* else we have a line */
-		*(arg++)=p;
-		num++;
-		while (*p && ((*p != ' ') && (*p != '\t') && (*p != '\n')))
-			p++;
-		if (!*p) break;
-		if (*p == '\n')
-			{
-			*(p++)='\0';
-			continue;
-			}
-		/* else it is a tab or space */
-		p++;
-		while (*p && ((*p == ' ') || (*p == '\t') || (*p == '\n')))
-			p++;
-		if (!*p) break;
-		if (*p == '\n')
-			{
-			p++;
-			continue;
-			}
-		*(arg++)=p++;
-		num++;
-		while (*p && (*p != '\n')) p++;
-		if (!*p) break;
-		/* else *p == '\n' */
-		*(p++)='\0';
-		}
-	*argc=num;
-	return(1);
-	}
-#endif
+    i = 0;
+    for (p = buf; *p; p++)
+    {
+        if (*p == '\n')
+            i++;
+    }
+    if (arg != NULL)
+        free(arg);
+    arg = (char **)malloc(sizeof(char *) * (i * 2));
+
+    *argv = arg;
+    num = 0;
+    p = buf;
+    while (*p)
+    {
+        if (*p == '#') /* comment line */
+        {
+            while (*p && (*p != '\n'))
+                p++;
+            continue;
+        }
+        /* else we have a line */
+        *(arg++) = p;
+        num++;
+        while (*p && ((*p != ' ') && (*p != '\t') && (*p != '\n')))
+            p++;
+        if (!*p)
+            break;
+        if (*p == '\n')
+        {
+            *(p++) = '\0';
+            continue;
+        }
+        /* else it is a tab or space */
+        p++;
+        while (*p && ((*p == ' ') || (*p == '\t') || (*p == '\n')))
+            p++;
+        if (!*p)
+            break;
+        if (*p == '\n')
+        {
+            p++;
+            continue;
+        }
+        *(arg++) = p++;
+        num++;
+        while (*p && (*p != '\n'))
+            p++;
+        if (!*p)
+            break;
+        /* else *p == '\n' */
+        *(p++) = '\0';
+    }
+    *argc = num;
+    return 1;
+}
 
 int str2fmt(char *s)
 	{
