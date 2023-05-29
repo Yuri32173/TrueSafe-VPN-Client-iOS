@@ -1,7 +1,5 @@
-#!/usr/local/bin/perl
-
 use strict;
-
+use warnings;
 use Fcntl;
 
 # copy-if-different.pl
@@ -11,68 +9,49 @@ use Fcntl;
 my @filelist;
 
 foreach my $arg (@ARGV) {
-	$arg =~ s|\\|/|g;	# compensate for bug/feature in cygwin glob...
-	foreach (glob $arg)
-		{
-		push @filelist, $_;
-		}
+    $arg =~ s|\\|/|g; # compensate for bug/feature in cygwin glob...
+    push @filelist, glob $arg;
 }
 
-my $fnum = @filelist;
+my $fnum = scalar @filelist;
 
-if ($fnum <= 1)
-	{
-	die "Need at least two filenames";
-	}
+if ($fnum <= 1) {
+    die "Need at least two filenames";
+}
 
 my $dest = pop @filelist;
 
-if ($fnum > 2 && ! -d $dest)
-	{
-	die "Destination must be a directory";
-	}
+if ($fnum > 2 && !-d $dest) {
+    die "Destination must be a directory";
+}
 
-foreach (@filelist)
-	{
-        my $dfile;
-	if (-d $dest)
-		{
-		$dfile = $_;
-		$dfile =~ s|^.*[/\\]([^/\\]*)$|$1|;
-		$dfile = "$dest/$dfile";
-		}
-	else
-		{
-		$dfile = $dest;
-		}
+foreach my $src (@filelist) {
+    my $dfile = (-d $dest) ? "$dest/" . (split /[\/\\]/, $src)[-1] : $dest;
 
-	my $buf;
-	if (-f $dfile)
-		{
-		sysopen(IN, $_, O_RDONLY|O_BINARY) || die "Can't Open $_";
-		sysopen(OUT, $dfile, O_RDONLY|O_BINARY)
-		  || die "Can't Open $dfile";
-		while (sysread IN, $buf, 10240)
-			{
-			my $b2;
-			goto copy if !sysread(OUT, $b2, 10240) || $buf ne $b2;
-			}
-		goto copy if sysread(OUT, $buf, 1);
-		close(IN);
-		close(OUT);
-		print "NOT copying: $_ to $dfile\n";
-		next;
-		}
-      copy:
-	sysopen(IN, $_, O_RDONLY|O_BINARY) || die "Can't Open $_";
-	sysopen(OUT, $dfile, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY)
-					|| die "Can't Open $dfile";
-	while (sysread IN, $buf, 10240)
-		{
-		syswrite(OUT, $buf, length($buf));
-		}
-	close(IN);
-	close(OUT);
-	print "Copying: $_ to $dfile\n";
-	}
+    if (-f $dfile) {
+        open(my $in, "<", $src) || die "Can't open $src: $!";
+        open(my $out, "<", $dfile) || die "Can't open $dfile: $!";
 
+        my $src_content = do { local $/; <$in> };
+        my $dest_content = do { local $/; <$out> };
+
+        if ($src_content eq $dest_content) {
+            close($in);
+            close($out);
+            print "NOT copying: $src to $dfile\n";
+            next;
+        }
+        close($out);
+    }
+
+    open(my $in, "<", $src) || die "Can't open $src: $!";
+    open(my $out, ">", $dfile) || die "Can't open $dfile: $!";
+
+    while (my $buf = <$in>) {
+        print $out $buf;
+    }
+
+    close($in);
+    close($out);
+    print "Copying: $src to $dfile\n";
+}
