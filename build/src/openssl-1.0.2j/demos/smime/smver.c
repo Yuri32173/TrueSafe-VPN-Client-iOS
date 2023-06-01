@@ -1,4 +1,3 @@
-/* Simple S/MIME verification example */
 #include <openssl/pem.h>
 #include <openssl/pkcs7.h>
 #include <openssl/err.h>
@@ -12,11 +11,9 @@ int main(int argc, char **argv)
 
     int ret = 1;
 
-    OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
+    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 
     /* Set up trusted CA certificate store */
-
     st = X509_STORE_new();
 
     /* Read in signer certificate and private key */
@@ -34,7 +31,6 @@ int main(int argc, char **argv)
         goto err;
 
     /* Open content being signed */
-
     in = BIO_new_file("smout.txt", "r");
 
     if (!in)
@@ -60,7 +56,7 @@ int main(int argc, char **argv)
 
     ret = 0;
 
- err:
+err:
 
     if (ret) {
         fprintf(stderr, "Error Verifying Data\n");
@@ -81,5 +77,4 @@ int main(int argc, char **argv)
         BIO_free(tbio);
 
     return ret;
-
 }
