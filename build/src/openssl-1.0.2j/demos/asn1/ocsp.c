@@ -1,220 +1,53 @@
-/* ocsp.c */
-/*
- * Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL project
- * 2000.
- */
-/* ====================================================================
- * Copyright (c) 2000 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.OpenSSL.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    licensing@OpenSSL.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- *
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim
- * Hudson (tjh@cryptsoft.com).
- *
- */
+
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <openssl/x509v3.h>
 
-/*-
-   Example of new ASN1 code, OCSP request
-
-        OCSPRequest     ::=     SEQUENCE {
-            tbsRequest                  TBSRequest,
-            optionalSignature   [0]     EXPLICIT Signature OPTIONAL }
-
-        TBSRequest      ::=     SEQUENCE {
-            version             [0] EXPLICIT Version DEFAULT v1,
-            requestorName       [1] EXPLICIT GeneralName OPTIONAL,
-            requestList             SEQUENCE OF Request,
-            requestExtensions   [2] EXPLICIT Extensions OPTIONAL }
-
-        Signature       ::=     SEQUENCE {
-            signatureAlgorithm   AlgorithmIdentifier,
-            signature            BIT STRING,
-            certs                [0] EXPLICIT SEQUENCE OF Certificate OPTIONAL }
-
-        Version  ::=  INTEGER  {  v1(0) }
-
-        Request ::=     SEQUENCE {
-            reqCert                    CertID,
-            singleRequestExtensions    [0] EXPLICIT Extensions OPTIONAL }
-
-        CertID ::= SEQUENCE {
-            hashAlgorithm            AlgorithmIdentifier,
-            issuerNameHash     OCTET STRING, -- Hash of Issuer's DN
-            issuerKeyHash      OCTET STRING, -- Hash of Issuers public key
-            serialNumber       CertificateSerialNumber }
-
-        OCSPResponse ::= SEQUENCE {
-           responseStatus         OCSPResponseStatus,
-           responseBytes          [0] EXPLICIT ResponseBytes OPTIONAL }
-
-        OCSPResponseStatus ::= ENUMERATED {
-            successful            (0),      --Response has valid confirmations
-            malformedRequest      (1),      --Illegal confirmation request
-            internalError         (2),      --Internal error in issuer
-            tryLater              (3),      --Try again later
-                                            --(4) is not used
-            sigRequired           (5),      --Must sign the request
-            unauthorized          (6)       --Request unauthorized
-        }
-
-        ResponseBytes ::=       SEQUENCE {
-            responseType   OBJECT IDENTIFIER,
-            response       OCTET STRING }
-
-        BasicOCSPResponse       ::= SEQUENCE {
-           tbsResponseData      ResponseData,
-           signatureAlgorithm   AlgorithmIdentifier,
-           signature            BIT STRING,
-           certs                [0] EXPLICIT SEQUENCE OF Certificate OPTIONAL }
-
-        ResponseData ::= SEQUENCE {
-           version              [0] EXPLICIT Version DEFAULT v1,
-           responderID              ResponderID,
-           producedAt               GeneralizedTime,
-           responses                SEQUENCE OF SingleResponse,
-           responseExtensions   [1] EXPLICIT Extensions OPTIONAL }
-
-        ResponderID ::= CHOICE {
-           byName   [1] Name,    --EXPLICIT
-           byKey    [2] KeyHash }
-
-        KeyHash ::= OCTET STRING --SHA-1 hash of responder's public key
-                                 --(excluding the tag and length fields)
-
-        SingleResponse ::= SEQUENCE {
-           certID                       CertID,
-           certStatus                   CertStatus,
-           thisUpdate                   GeneralizedTime,
-           nextUpdate           [0]     EXPLICIT GeneralizedTime OPTIONAL,
-           singleExtensions     [1]     EXPLICIT Extensions OPTIONAL }
-
-        CertStatus ::= CHOICE {
-            good                [0]     IMPLICIT NULL,
-            revoked             [1]     IMPLICIT RevokedInfo,
-            unknown             [2]     IMPLICIT UnknownInfo }
-
-        RevokedInfo ::= SEQUENCE {
-            revocationTime              GeneralizedTime,
-            revocationReason    [0]     EXPLICIT CRLReason OPTIONAL }
-
-        UnknownInfo ::= NULL -- this can be replaced with an enumeration
-
-        ArchiveCutoff ::= GeneralizedTime
-
-        AcceptableResponses ::= SEQUENCE OF OBJECT IDENTIFIER
-
-        ServiceLocator ::= SEQUENCE {
-            issuer    Name,
-            locator   AuthorityInfoAccessSyntax }
-
-        -- Object Identifiers
-
-        id-kp-OCSPSigning            OBJECT IDENTIFIER ::= { id-kp 9 }
-        id-pkix-ocsp                 OBJECT IDENTIFIER ::= { id-ad-ocsp }
-        id-pkix-ocsp-basic           OBJECT IDENTIFIER ::= { id-pkix-ocsp 1 }
-        id-pkix-ocsp-nonce           OBJECT IDENTIFIER ::= { id-pkix-ocsp 2 }
-        id-pkix-ocsp-crl             OBJECT IDENTIFIER ::= { id-pkix-ocsp 3 }
-        id-pkix-ocsp-response        OBJECT IDENTIFIER ::= { id-pkix-ocsp 4 }
-        id-pkix-ocsp-nocheck         OBJECT IDENTIFIER ::= { id-pkix-ocsp 5 }
-        id-pkix-ocsp-archive-cutoff  OBJECT IDENTIFIER ::= { id-pkix-ocsp 6 }
-        id-pkix-ocsp-service-locator OBJECT IDENTIFIER ::= { id-pkix-ocsp 7 }
-
-*/
 
 /* Request Structures */
-
-DECLARE_STACK_OF(Request)
-
-typedef struct {
+typedef struct Request_st {
     ASN1_INTEGER *version;
     GENERAL_NAME *requestorName;
-    STACK_OF(Request) *requestList;
-    STACK_OF(X509_EXTENSION) *requestExtensions;
+    struct stack_st_Request *requestList;
+    struct stack_st_X509_EXTENSION *requestExtensions;
+} Request;
+
+typedef struct TBSRequest_st {
+    Request *tbsRequest;
+    struct Signature_st *optionalSignature;
 } TBSRequest;
 
-typedef struct {
+typedef struct Signature_st {
     X509_ALGOR *signatureAlgorithm;
     ASN1_BIT_STRING *signature;
-    STACK_OF(X509) *certs;
+    struct stack_st_X509 *certs;
 } Signature;
 
-typedef struct {
-    TBSRequest *tbsRequest;
-    Signature *optionalSignature;
-} OCSPRequest;
-
-typedef struct {
+typedef struct CertID_st {
     X509_ALGOR *hashAlgorithm;
     ASN1_OCTET_STRING *issuerNameHash;
     ASN1_OCTET_STRING *issuerKeyHash;
     ASN1_INTEGER *certificateSerialNumber;
 } CertID;
 
-typedef struct {
+typedef struct Request_st {
     CertID *reqCert;
-    STACK_OF(X509_EXTENSION) *singleRequestExtensions;
+    struct stack_st_X509_EXTENSION *singleRequestExtensions;
 } Request;
 
 /* Response structures */
 
-typedef struct {
+typedef struct ResponseBytes_st {
     ASN1_OBJECT *responseType;
     ASN1_OCTET_STRING *response;
 } ResponseBytes;
 
-typedef struct {
+typedef struct OCSPResponse_st {
     ASN1_ENUMERATED *responseStatus;
     ResponseBytes *responseBytes;
 } OCSPResponse;
 
-typedef struct {
+typedef struct ResponderID_st {
     int type;
     union {
         X509_NAME *byName;
@@ -222,27 +55,27 @@ typedef struct {
     } d;
 } ResponderID;
 
-typedef struct {
+typedef struct ResponseData_st {
     ASN1_INTEGER *version;
     ResponderID *responderID;
     ASN1_GENERALIZEDTIME *producedAt;
-    STACK_OF(SingleResponse) *responses;
-    STACK_OF(X509_EXTENSION) *responseExtensions;
+    struct stack_st_SingleResponse *responses;
+    struct stack_st_X509_EXTENSION *responseExtensions;
 } ResponseData;
 
-typedef struct {
+typedef struct BasicOCSPResponse_st {
     ResponseData *tbsResponseData;
     X509_ALGOR *signatureAlgorithm;
     ASN1_BIT_STRING *signature;
-    STACK_OF(X509) *certs;
+    struct stack_st_X509 *certs;
 } BasicOCSPResponse;
 
-typedef struct {
+typedef struct RevokedInfo_st {
     ASN1_GENERALIZEDTIME *revocationTime;
     ASN1_ENUMERATED *revocationReason;
 } RevokedInfo;
 
-typedef struct {
+typedef struct CertStatus_st {
     int type;
     union {
         ASN1_NULL *good;
