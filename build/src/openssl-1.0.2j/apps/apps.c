@@ -1,113 +1,3 @@
-/* apps/apps.c */
-/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
- * All rights reserved.
- *
- * This package is an SSL implementation written
- * by Eric Young (eay@cryptsoft.com).
- * The implementation was written so as to conform with Netscapes SSL.
- *
- * This library is free for commercial and non-commercial use as long as
- * the following conditions are aheared to.  The following conditions
- * apply to all code found in this distribution, be it the RC4, RSA,
- * lhash, DES, etc., code; not just the SSL code.  The SSL documentation
- * included with this distribution is covered by the same copyright terms
- * except that the holder is Tim Hudson (tjh@cryptsoft.com).
- *
- * Copyright remains Eric Young's, and as such any Copyright notices in
- * the code are not to be removed.
- * If this package is used in a product, Eric Young should be given attribution
- * as the author of the parts of the library used.
- * This can be in the form of a textual message at program startup or
- * in documentation (online or textual) provided with the package.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    "This product includes cryptographic software written by
- *     Eric Young (eay@cryptsoft.com)"
- *    The word 'cryptographic' can be left out if the rouines from the library
- *    being used are not cryptographic related :-).
- * 4. If you include any Windows specific code (or a derivative thereof) from
- *    the apps directory (application code) you must include an acknowledgement:
- *    "This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
- *
- * THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * The licence and distribution terms for any publically available version or
- * derivative of this code cannot be changed.  i.e. this code cannot simply be
- * copied and put under another distribution licence
- * [including the GNU Public Licence.]
- */
-/* ====================================================================
- * Copyright (c) 1998-2001 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    openssl-core@openssl.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- *
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim
- * Hudson (tjh@cryptsoft.com).
- *
- */
 
 #if !defined(_POSIX_C_SOURCE) && defined(OPENSSL_SYS_VMS)
 /*
@@ -151,39 +41,44 @@ static int WIN32_rename(const char *from, const char *to);
 #endif
 
 typedef struct {
-    const char *name;
+    const char* name;
     unsigned long flag;
     unsigned long mask;
-} NAME_EX_TBL;
+} NameExTable;
 
-static UI_METHOD *ui_method = NULL;
+typedef struct {
+    const char* file;
+    int* argc;
+    char*** argv;
+} ArgsFromFileResult;
 
-static int set_table_opts(unsigned long *flags, const char *arg,
-                          const NAME_EX_TBL * in_tbl);
-static int set_multi_opts(unsigned long *flags, const char *arg,
-                          const NAME_EX_TBL * in_tbl);
+static UI_METHOD* ui_method = NULL;
+
+static int setTableOptions(unsigned long* flags, const char* arg,
+                           const NameExTable* in_tbl);
+static int setMultiOptions(unsigned long* flags, const char* arg,
+                           const NameExTable* in_tbl);
 
 #if !defined(OPENSSL_NO_RC4) && !defined(OPENSSL_NO_RSA)
 /* Looks like this stuff is worth moving into separate function */
-static EVP_PKEY *load_netscape_key(BIO *err, BIO *key, const char *file,
-                                   const char *key_descrip, int format);
+static EVP_PKEY* loadNetscapeKey(BIO* err, BIO* key, const char* file,
+                                 const char* key_descrip, int format);
 #endif
 
-int app_init(long mesgwin);
+int initializeApp(long mesgwin);
 #ifdef undef                    /* never finished - probably never will be
                                  * :-) */
-int args_from_file(char *file, int *argc, char **argv[])
-{
-    FILE *fp;
+ArgsFromFileResult argsFromFile(const char* file) {
+    FILE* fp;
     int num, i;
     unsigned int len;
-    static char *buf = NULL;
-    static char **arg = NULL;
-    char *p;
+    char* buf = NULL;
+    char** arg = NULL;
+    char* p;
 
     fp = fopen(file, "r");
     if (fp == NULL)
-        return (0);
+        return (ArgsFromFileResult){NULL, 0, NULL};
 
     if (fseek(fp, 0, SEEK_END) == 0)
         len = ftell(fp), rewind(fp);
@@ -191,33 +86,33 @@ int args_from_file(char *file, int *argc, char **argv[])
         len = -1;
     if (len <= 0) {
         fclose(fp);
-        return (0);
+        return (ArgsFromFileResult){NULL, 0, NULL};
     }
 
-    *argc = 0;
-    *argv = NULL;
+    int argc = 0;
+    char** argv = NULL;
 
-    if (buf != NULL)
-        OPENSSL_free(buf);
-    buf = (char *)OPENSSL_malloc(len + 1);
+    buf = (char*)malloc(len + 1);
     if (buf == NULL)
-        return (0);
+        return (ArgsFromFileResult){NULL, 0, NULL};
 
     len = fread(buf, 1, len, fp);
-    if (len <= 1)
-        return (0);
+    if (len <= 1) {
+        free(buf);
+        return (ArgsFromFileResult){NULL, 0, NULL};
+    }
     buf[len] = '\0';
 
     i = 0;
     for (p = buf; *p; p++)
         if (*p == '\n')
             i++;
-    if (arg != NULL)
-        OPENSSL_free(arg);
-    arg = (char **)OPENSSL_malloc(sizeof(char *) * (i * 2));
-    if (arg == NULL)
-        return 0;
-    *argv = arg;
+    arg = (char**)malloc(sizeof(char*) * (i * 2));
+    if (arg == NULL) {
+        free(buf);
+        return (ArgsFromFileResult){NULL, 0, NULL};
+    }
+    argv = arg;
     num = 0;
     p = buf;
     for (;;) {
@@ -258,8 +153,9 @@ int args_from_file(char *file, int *argc, char **argv[])
         /* else *p == '\n' */
         *(p++) = '\0';
     }
-    *argc = num;
-    return (1);
+    argc = num;
+
+    return (ArgsFromFileResult){buf, &argc, &argv};
 }
 #endif
 
