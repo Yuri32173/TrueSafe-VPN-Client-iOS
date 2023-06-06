@@ -127,83 +127,104 @@
 # endif
 # include <openssl/ossl_typ.h>
 
-int app_RAND_load_file(const char *file, BIO *bio_e, int dont_warn);
-int app_RAND_write_file(const char *file, BIO *bio_e);
-/*
- * When `file' is NULL, use defaults. `bio_e' is for error messages.
- */
+int app_RAND_load_file(const char* file, BIO* bio_e, int dont_warn);
+int app_RAND_write_file(const char* file, BIO* bio_e);
+
 void app_RAND_allow_write_file(void);
-long app_RAND_load_files(char *file); /* `file' is a list of files to read,
-                                       * separated by LIST_SEPARATOR_CHAR
-                                       * (see e_os.h).  The string is
-                                       * destroyed! */
+long app_RAND_load_files(char* file);
 
-# ifndef MONOLITH
+#ifndef MONOLITH
 
-#  define MAIN(a,v)       main(a,v)
+#define MAIN(a, v) main(a, v)
 
-#  ifndef NON_MAIN
-CONF *config = NULL;
-BIO *bio_err = NULL;
-#  else
-extern CONF *config;
-extern BIO *bio_err;
-#  endif
+#ifndef NON_MAIN
+CONF* config = NULL;
+BIO* bio_err = NULL;
+#else
+extern CONF* config;
+extern BIO* bio_err;
+#endif
 
-# else
+#else
 
-#  define MAIN(a,v)       PROG(a,v)
-extern CONF *config;
-extern char *default_config_file;
-extern BIO *bio_err;
+#define MAIN(a, v) PROG(a, v)
+extern CONF* config;
+extern char* default_config_file;
+extern BIO* bio_err;
 
-# endif
+#endif
 
-# ifndef OPENSSL_SYS_NETWARE
-#  include <signal.h>
-# endif
+#ifndef OPENSSL_SYS_NETWARE
+#include <signal.h>
+#endif
 
-# ifdef SIGPIPE
-#  define do_pipe_sig()   signal(SIGPIPE,SIG_IGN)
-# else
-#  define do_pipe_sig()
-# endif
+#ifdef SIGPIPE
+#define do_pipe_sig() signal(SIGPIPE, SIG_IGN)
+#else
+#define do_pipe_sig()
+#endif
 
-# ifdef OPENSSL_NO_COMP
-#  define zlib_cleanup()
-# else
-#  define zlib_cleanup() COMP_zlib_cleanup()
-# endif
+#ifdef OPENSSL_NO_COMP
+#define zlib_cleanup()
+#else
+#define zlib_cleanup() COMP_zlib_cleanup()
+#endif
 
-# if defined(MONOLITH) && !defined(OPENSSL_C)
-#  define apps_startup() \
-                do_pipe_sig()
-#  define apps_shutdown()
-# else
-#  ifndef OPENSSL_NO_ENGINE
-#   define apps_startup() \
-                        do { do_pipe_sig(); CRYPTO_malloc_init(); \
-                        ERR_load_crypto_strings(); OpenSSL_add_all_algorithms(); \
-                        ENGINE_load_builtin_engines(); setup_ui_method(); } while(0)
-#   define apps_shutdown() \
-                        do { CONF_modules_unload(1); destroy_ui_method(); \
-                        OBJ_cleanup(); EVP_cleanup(); ENGINE_cleanup(); \
-                        CRYPTO_cleanup_all_ex_data(); ERR_remove_thread_state(NULL); \
-                        RAND_cleanup(); \
-                        ERR_free_strings(); zlib_cleanup();} while(0)
-#  else
-#   define apps_startup() \
-                        do { do_pipe_sig(); CRYPTO_malloc_init(); \
-                        ERR_load_crypto_strings(); OpenSSL_add_all_algorithms(); \
-                        setup_ui_method(); } while(0)
-#   define apps_shutdown() \
-                        do { CONF_modules_unload(1); destroy_ui_method(); \
-                        OBJ_cleanup(); EVP_cleanup(); \
-                        CRYPTO_cleanup_all_ex_data(); ERR_remove_thread_state(NULL); \
-                        RAND_cleanup(); \
-                        ERR_free_strings(); zlib_cleanup(); } while(0)
-#  endif
-# endif
+#if defined(MONOLITH) && !defined(OPENSSL_C)
+#define apps_startup() \
+    do_pipe_sig()
+#define apps_shutdown()
+#else
+#ifndef OPENSSL_NO_ENGINE
+#define apps_startup()                                \
+    do                                                \
+    {                                                 \
+        do_pipe_sig();                                \
+        CRYPTO_malloc_init();                         \
+        ERR_load_crypto_strings();                    \
+        OpenSSL_add_all_algorithms();                  \
+        ENGINE_load_builtin_engines();                 \
+        setup_ui_method();                            \
+    } while (0)
+#define apps_shutdown()                              \
+    do                                               \
+    {                                                \
+        CONF_modules_unload(1);                       \
+        destroy_ui_method();                          \
+        OBJ_cleanup();                                \
+        EVP_cleanup();                                \
+        ENGINE_cleanup();                             \
+        CRYPTO_cleanup_all_ex_data();                 \
+        ERR_remove_thread_state(NULL);                \
+        RAND_cleanup();                               \
+        ERR_free_strings();                           \
+        zlib_cleanup();                               \
+    } while (0)
+#else
+#define apps_startup()                                \
+    do                                                \
+    {                                                 \
+        do_pipe_sig();                                \
+        CRYPTO_malloc_init();                         \
+        ERR_load_crypto_strings();                    \
+        OpenSSL_add_all_algorithms();                  \
+        setup_ui_method();                            \
+    } while (0)
+#define apps_shutdown()                              \
+    do                                               \
+    {                                                \
+        CONF_modules_unload(1);                       \
+        destroy_ui_method();                          \
+        OBJ_cleanup();                                \
+        EVP_cleanup();                                \
+        CRYPTO_cleanup_all_ex_data();                 \
+        ERR_remove_thread_state(NULL);                \
+        RAND_cleanup();                               \
+        ERR_free_strings();                           \
+        zlib_cleanup();                               \
+    } while (0)
+#endif
+#endif
 
 # if defined(OPENSSL_SYSNAME_WIN32) || defined(OPENSSL_SYSNAME_WINCE)
 #  define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
