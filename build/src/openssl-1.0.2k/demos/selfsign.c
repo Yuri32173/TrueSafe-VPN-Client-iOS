@@ -1,6 +1,3 @@
-/* NOCW */
-/* cc -o ssdemo -I../include selfsign.c ../libcrypto.a */
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -12,17 +9,16 @@ int mkit(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int days);
 
 int main()
 {
-    BIO *bio_err;
+    CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
+
+    BIO *bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
+
     X509 *x509 = NULL;
     EVP_PKEY *pkey = NULL;
 
-    CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
-
-    bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
-
     mkit(&x509, &pkey, 512, 0, 365);
 
-    RSA_print_fp(stdout, pkey->pkey.rsa, 0);
+    RSA_print_fp(stdout, EVP_PKEY_get0_RSA(pkey), 0);
     X509_print_fp(stdout, x509);
 
     PEM_write_PrivateKey(stdout, pkey, NULL, NULL, 0, NULL, NULL);
@@ -39,62 +35,49 @@ int main()
 
     CRYPTO_mem_leaks(bio_err);
     BIO_free(bio_err);
-    return (0);
+    return 0;
 }
 
 #ifdef WIN16
-# define MS_CALLBACK   _far _loadds
-# define MS_FAR        _far
+#define MS_CALLBACK _far _loadds
+#define MS_FAR _far
 #else
-# define MS_CALLBACK
-# define MS_FAR
+#define MS_CALLBACK
+#define MS_FAR
 #endif
 
-static void MS_CALLBACK callback(p, n, arg)
-int p;
-int n;
-void *arg;
+static void MS_CALLBACK callback(int p, int n, void *arg)
 {
-    char c = 'B';
-
-    if (p == 0)
-        c = '.';
-    if (p == 1)
-        c = '+';
-    if (p == 2)
-        c = '*';
-    if (p == 3)
-        c = '\n';
+    const char *symbols = ".+*\n";
+    char c = (p >= 0 && p <= 3) ? symbols[p] : 'B';
     fputc(c, stderr);
 }
 
-int mkit(x509p, pkeyp, bits, serial, days)
-X509 **x509p;
-EVP_PKEY **pkeyp;
-int bits;
-int serial;
-int days;
+int mkit(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int days)
 {
-    X509 *x;
-    EVP_PKEY *pk;
-    RSA *rsa;
+    X509 *x = NULL;
+    EVP_PKEY *pk = NULL;
+    RSA *rsa = NULL;
     X509_NAME *name = NULL;
     X509_NAME_ENTRY *ne = NULL;
     X509_EXTENSION *ex = NULL;
 
-    if ((pkeyp == NULL) || (*pkeyp == NULL)) {
+    if (pkeyp == NULL || *pkeyp == NULL) {
         if ((pk = EVP_PKEY_new()) == NULL) {
             abort();
-            return (0);
+            return 0;
         }
-    } else
+    } else {
         pk = *pkeyp;
+    }
 
-    if ((x509p == NULL) || (*x509p == NULL)) {
-        if ((x = X509_new()) == NULL)
+    if (x509p == NULL || *x509p == NULL) {
+        if ((x = X509_new()) == NULL) {
             goto err;
-    } else
+        }
+    } else {
         x = *x509p;
+    }
 
     rsa = RSA_generate_key(bits, RSA_F4, callback, NULL);
     if (!EVP_PKEY_assign_RSA(pk, rsa)) {
@@ -111,44 +94,26 @@ int days;
 
     name = X509_get_subject_name(x);
 
-    /*
-     * This function creates and adds the entry, working out the correct
-     * string type and performing checks on its length. Normally we'd check
-     * the return value for errors...
-     */
     X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, "UK", -1, -1, 0);
-    X509_NAME_add_entry_by_txt(name, "CN",
-                               MBSTRING_ASC, "OpenSSL Group", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, "OpenSSL Group", -1, -1, 0);
 
     X509_set_issuer_name(x, name);
-
-    /*
-     * Add extension using V3 code: we can set the config file as NULL
-     * because we wont reference any other sections. We can also set the
-     * context to NULL because none of these extensions below will need to
-     * access it.
-     */
 
     ex = X509V3_EXT_conf_nid(NULL, NULL, NID_netscape_cert_type, "server");
     X509_add_ext(x, ex, -1);
     X509_EXTENSION_free(ex);
 
-    ex = X509V3_EXT_conf_nid(NULL, NULL, NID_netscape_comment,
-                             "example comment extension");
+    ex = X509V3_EXT_conf_nid(NULL, NULL, NID_netscape_comment, "example comment extension");
     X509_add_ext(x, ex, -1);
     X509_EXTENSION_free(ex);
 
-    ex = X509V3_EXT_conf_nid(NULL, NULL, NID_netscape_ssl_server_name,
-                             "www.openssl.org");
-
+    ex = X509V3_EXT_conf_nid(NULL, NULL, NID_netscape_ssl_server_name, "www.openssl.org");
     X509_add_ext(x, ex, -1);
     X509_EXTENSION_free(ex);
 
 #if 0
     /* might want something like this too.... */
-    ex = X509V3_EXT_conf_nid(NULL, NULL, NID_basic_constraints,
-                             "critical,CA:TRUE");
-
+    ex = X509V3_EXT_conf_nid(NULL, NULL, NID_basic_constraints, "critical,CA:TRUE");
     X509_add_ext(x, ex, -1);
     X509_EXTENSION_free(ex);
 #endif
@@ -170,7 +135,10 @@ int days;
 
     *x509p = x;
     *pkeyp = pk;
-    return (1);
- err:
-    return (0);
+    return 1;
+
+err:
+    X509_free(x);
+    EVP_PKEY_free(pk);
+    return 0;
 }
