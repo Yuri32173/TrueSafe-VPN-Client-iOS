@@ -1,169 +1,94 @@
-/* ====================================================================
- * Copyright (c) 1999 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.OpenSSL.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    licensing@OpenSSL.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- *
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim
- * Hudson (tjh@cryptsoft.com).
- *
- */
-
 #include <stdio.h>
 #include <openssl/bn.h>
 #include <string.h>
-
-#include <openssl/e_os2.h>
-#if !defined(OPENSSL_SYS_MSDOS) || defined(__DJGPP__) || defined(__MINGW32__)
-# include <sys/types.h>
-# include <unistd.h>
-#else
-# include <process.h>
-typedef int pid_t;
-#endif
-
-#if defined(OPENSSL_SYS_NETWARE) && defined(NETWARE_CLIB)
-# define getpid GetThreadID
-extern int GetThreadID(void);
-#elif defined(_WIN32) && !defined(__WATCOMC__)
-# define getpid _getpid
-#endif
-
+#include <unistd.h>
 #include <openssl/crypto.h>
 #include <openssl/dso.h>
 #include <openssl/engine.h>
 #include <openssl/buffer.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+#include <openssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+#include <openssl/dsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+#include <openssl/dh.h>
 #endif
 
 #ifndef OPENSSL_NO_HW
-# ifndef OPENSSL_NO_HW_AEP
-#  ifdef FLAT_INC
-#   include "aep.h"
-#  else
-#   include "vendor_defns/aep.h"
-#  endif
+#ifndef OPENSSL_NO_HW_AEP
+#include "aep.h"
+#define AEP_LIB_NAME "aep engine"
+#define FAIL_TO_SW 0x10101010
+#include "e_aep_err.c"
 
-#  define AEP_LIB_NAME "aep engine"
-#  define FAIL_TO_SW 0x10101010
-
-#  include "e_aep_err.c"
-
-static int aep_init(ENGINE *e);
-static int aep_finish(ENGINE *e);
-static int aep_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void));
-static int aep_destroy(ENGINE *e);
+static int aep_init(ENGINE* e);
+static int aep_finish(ENGINE* e);
+static int aep_ctrl(ENGINE* e, int cmd, long i, void* p, void (*f)(void));
+static int aep_destroy(ENGINE* e);
 
 static AEP_RV aep_get_connection(AEP_CONNECTION_HNDL_PTR hConnection);
 static AEP_RV aep_return_connection(AEP_CONNECTION_HNDL hConnection);
 static AEP_RV aep_close_connection(AEP_CONNECTION_HNDL hConnection);
-static AEP_RV aep_close_all_connections(int use_engine_lock, int *in_use);
+static AEP_RV aep_close_all_connections(int use_engine_lock, int* in_use);
 
 /* BIGNUM stuff */
-#  ifndef OPENSSL_NO_RSA
-static int aep_mod_exp(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-                       const BIGNUM *m, BN_CTX *ctx);
+#ifndef OPENSSL_NO_RSA
+static int aep_mod_exp(BIGNUM* r, const BIGNUM* a, const BIGNUM* p,
+                       const BIGNUM* m, BN_CTX* ctx);
 
-static AEP_RV aep_mod_exp_crt(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-                              const BIGNUM *q, const BIGNUM *dmp1,
-                              const BIGNUM *dmq1, const BIGNUM *iqmp,
-                              BN_CTX *ctx);
-#  endif
+static AEP_RV aep_mod_exp_crt(BIGNUM* r, const BIGNUM* a, const BIGNUM* p,
+                              const BIGNUM* q, const BIGNUM* dmp1,
+                              const BIGNUM* dmq1, const BIGNUM* iqmp,
+                              BN_CTX* ctx);
+#endif
 
 /* RSA stuff */
-#  ifndef OPENSSL_NO_RSA
-static int aep_rsa_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa,
-                           BN_CTX *ctx);
-#  endif
+#ifndef OPENSSL_NO_RSA
+static int aep_rsa_mod_exp(BIGNUM* r0, const BIGNUM* I, RSA* rsa,
+                           BN_CTX* ctx);
+#endif
 
 /* This function is aliased to mod_exp (with the mont stuff dropped). */
-#  ifndef OPENSSL_NO_RSA
-static int aep_mod_exp_mont(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-                            const BIGNUM *m, BN_CTX *ctx, BN_MONT_CTX *m_ctx);
-#  endif
+#ifndef OPENSSL_NO_RSA
+static int aep_mod_exp_mont(BIGNUM* r, const BIGNUM* a, const BIGNUM* p,
+                            const BIGNUM* m, BN_CTX* ctx, BN_MONT_CTX* m_ctx);
+#endif
 
 /* DSA stuff */
-#  ifndef OPENSSL_NO_DSA
-static int aep_dsa_mod_exp(DSA *dsa, BIGNUM *rr, BIGNUM *a1,
-                           BIGNUM *p1, BIGNUM *a2, BIGNUM *p2, BIGNUM *m,
-                           BN_CTX *ctx, BN_MONT_CTX *in_mont);
+#ifndef OPENSSL_NO_DSA
+static int aep_dsa_mod_exp(DSA* dsa, BIGNUM* rr, BIGNUM* a1,
+                           BIGNUM* p1, BIGNUM* a2, BIGNUM* p2, BIGNUM* m,
+                           BN_CTX* ctx, BN_MONT_CTX* in_mont);
 
-static int aep_mod_exp_dsa(DSA *dsa, BIGNUM *r, BIGNUM *a,
-                           const BIGNUM *p, const BIGNUM *m, BN_CTX *ctx,
-                           BN_MONT_CTX *m_ctx);
-#  endif
+static int aep_mod_exp_dsa(DSA* dsa, BIGNUM* r, BIGNUM* a,
+                           const BIGNUM* p, const BIGNUM* m, BN_CTX* ctx,
+                           BN_MONT_CTX* m_ctx);
+#endif
 
 /* DH stuff */
 /* This function is aliased to mod_exp (with the DH and mont dropped). */
-#  ifndef OPENSSL_NO_DH
-static int aep_mod_exp_dh(const DH *dh, BIGNUM *r, const BIGNUM *a,
-                          const BIGNUM *p, const BIGNUM *m, BN_CTX *ctx,
-                          BN_MONT_CTX *m_ctx);
-#  endif
+#ifndef OPENSSL_NO_DH
+static int aep_mod_exp_dh(const DH* dh, BIGNUM* r, const BIGNUM* a,
+                          const BIGNUM* p, const BIGNUM* m, BN_CTX* ctx,
+                          BN_MONT_CTX* m_ctx);
+#endif
 
-/* rand stuff   */
-#  ifdef AEPRAND
-static int aep_rand(unsigned char *buf, int num);
+/* rand stuff */
+#ifdef AEPRAND
+static int aep_rand(unsigned char* buf, int num);
 static int aep_rand_status(void);
-#  endif
+#endif
 
 /* Bignum conversion stuff */
-static AEP_RV GetBigNumSize(AEP_VOID_PTR ArbBigNum, AEP_U32 *BigNumSize);
+static AEP_RV GetBigNumSize(AEP_VOID_PTR ArbBigNum, AEP_U32* BigNumSize);
 static AEP_RV MakeAEPBigNum(AEP_VOID_PTR ArbBigNum, AEP_U32 BigNumSize,
-                            unsigned char *AEP_BigNum);
-static AEP_RV ConvertAEPBigNum(void *ArbBigNum, AEP_U32 BigNumSize,
-                               unsigned char *AEP_BigNum);
-
+                            unsigned char* AEP_BigNum);
+static AEP_RV ConvertAEPBigNum(void* ArbBigNum, AEP_U32 BigNumSize,
+                               unsigned char* AEP_BigNum);
+#endif
+#endif
 /* The definitions for control commands specific to this engine */
 #  define AEP_CMD_SO_PATH         ENGINE_CMD_BASE
 static const ENGINE_CMD_DEFN aep_cmd_defns[] = {
