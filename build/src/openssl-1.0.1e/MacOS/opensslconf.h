@@ -1,5 +1,3 @@
-/* MacOS/opensslconf.h */
-
 #if !(defined(VMS) || defined(__VMS)) /* VMS uses logical names instead */
 #if defined(HEADER_CRYPTLIB_H) && !defined(OPENSSLDIR)
 #define OPENSSLDIR "/usr/local/ssl"
@@ -22,9 +20,9 @@
 #if defined(HEADER_RC4_H)
 #if !defined(RC4_INT)
 /* using int types make the structure larger but make the code faster
- * on most boxes I have tested - up to %20 faster. */
+ * on most boxes I have tested - up to 20% faster. */
 /*
- * I don't know what does "most" mean, but declaring "int" is a must on:
+ * I don't know what "most" means, but declaring "int" is a must on:
  * - Intel P6 because partial register stalls are very expensive;
  * - elder Alpha because it lacks byte load/store instructions;
  */
@@ -41,7 +39,7 @@
 
 #if defined(HEADER_DES_H) && !defined(DES_LONG)
 /* If this is set to 'unsigned int' on a DEC Alpha, this gives about a
- * %20 speed up (longs are 8 bytes, int's are 4). */
+ * 20% speedup (longs are 8 bytes, ints are 4). */
 #ifndef DES_LONG
 #define DES_LONG unsigned long
 #endif
@@ -57,10 +55,10 @@
 
 /* Should we define BN_DIV2W here? */
 
-/* Only one for the following should be defined */
+/* Only one of the following should be defined */
 /* The prime number generation stuff may not work when
- * EIGHT_BIT but I don't care since I've only used this mode
- * for debuging the bignum libraries */
+ * EIGHT_BIT is defined, but I don't care since I've only used this mode
+ * for debugging the bignum libraries */
 #undef SIXTY_FOUR_BIT_LONG
 #undef SIXTY_FOUR_BIT
 #define THIRTY_TWO_BIT
@@ -70,7 +68,7 @@
 
 #if defined(HEADER_RC4_LOCL_H) && !defined(CONFIG_HEADER_RC4_LOCL_H)
 #define CONFIG_HEADER_RC4_LOCL_H
-/* if this is defined data[i] is used instead of *data, this is a %20
+/* if this is defined, data[i] is used instead of *data, this is a 20%
  * speedup on x86 */
 #undef RC4_INDEX
 #endif
@@ -88,8 +86,8 @@
 #define DES_PTR
 #endif
 
-/* This helps C compiler generate the correct code for multiple functional
- * units.  It reduces register dependancies at the expense of 2 more
+/* This helps the C compiler generate the correct code for multiple functional
+ * units. It reduces register dependencies at the expense of 2 more
  * registers */
 #ifndef DES_RISC1
 #define DES_RISC1
@@ -103,7 +101,7 @@
 #endif
 
 /* Unroll the inner loop, this sometimes helps, sometimes hinders.
- * Very mucy CPU dependant */
+ * Very much CPU-dependent */
 #ifndef DES_UNROLL
 #define DES_UNROLL
 #endif
