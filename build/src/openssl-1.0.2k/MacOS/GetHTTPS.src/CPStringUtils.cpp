@@ -1,177 +1,68 @@
-/* ====================================================================
- * Copyright (c) 1998-1999 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer. 
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    openssl-core@openssl.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- *
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim
- * Hudson (tjh@cryptsoft.com).
- *
- */
- 
- 
- 
- #include "CPStringUtils.hpp"
+
+#include "CPStringUtils.hpp"
 #include "ErrorHandling.hpp"
 
+#define kNumberFormatString "\p########0.00#######;-########0.00#######"
 
-
-#define kNumberFormatString			"\p########0.00#######;-########0.00#######"
-
-
-
-//	Useful utility functions which could be optimized a whole lot
-
-
-void CopyPStrToCStr(const unsigned char *thePStr,char *theCStr,const int maxCStrLength)
+void CopyPStrToCStr(const unsigned char* thePStr, char* theCStr, const int maxCStrLength)
 {
-int		i,numPChars;
-
-
-	if (thePStr != nil && theCStr != nil && maxCStrLength > 0)
-	{
-		numPChars = thePStr[0];
-		
-		for (i = 0;;i++)
-		{
-			if (i >= numPChars || i >= maxCStrLength - 1)
-			{
-				theCStr[i] = 0;
-				
-				break;
-			}
-			
-			else
-			{
-				theCStr[i] = thePStr[i + 1];
-			}
-		}
-	}
+    if (thePStr != nullptr && theCStr != nullptr && maxCStrLength > 0)
+    {
+        int numPChars = thePStr[0];
+        int i;
+        for (i = 0; i < numPChars && i < maxCStrLength - 1; i++)
+        {
+            theCStr[i] = thePStr[i + 1];
+        }
+        theCStr[i] = '\0';
+    }
 }
 
-
-void CopyPStrToPStr(const unsigned char *theSrcPStr,unsigned char *theDstPStr,const int maxDstStrLength)
+void CopyPStrToPStr(const unsigned char* theSrcPStr, unsigned char* theDstPStr, const int maxDstStrLength)
 {
-int		theMaxDstStrLength;
-
-	
-	theMaxDstStrLength = maxDstStrLength;
-	
-	
-	if (theDstPStr != nil && theSrcPStr != nil && theMaxDstStrLength > 0)
-	{
-		if (theMaxDstStrLength > 255)
-		{
-			theMaxDstStrLength = 255;
-		}
-		
-		
-		if (theMaxDstStrLength - 1 < theSrcPStr[0])
-		{
-			BlockMove(theSrcPStr + 1,theDstPStr + 1,theMaxDstStrLength - 1);
-			
-			theDstPStr[0] = theMaxDstStrLength - 1;
-		}
-		
-		else
-		{
-			BlockMove(theSrcPStr,theDstPStr,theSrcPStr[0] + 1);
-		}
-	}
+    int theMaxDstStrLength = maxDstStrLength;
+    if (theDstPStr != nullptr && theSrcPStr != nullptr && theMaxDstStrLength > 0)
+    {
+        if (theMaxDstStrLength > 255)
+        {
+            theMaxDstStrLength = 255;
+        }
+        if (theMaxDstStrLength - 1 < theSrcPStr[0])
+        {
+            std::copy(theSrcPStr + 1, theSrcPStr + theMaxDstStrLength, theDstPStr + 1);
+            theDstPStr[0] = static_cast<unsigned char>(theMaxDstStrLength - 1);
+        }
+        else
+        {
+            std::copy(theSrcPStr, theSrcPStr + theSrcPStr[0] + 1, theDstPStr);
+        }
+    }
 }
 
-
-void CopyCStrToCStr(const char *theSrcCStr,char *theDstCStr,const int maxDstStrLength)
+void CopyCStrToCStr(const char* theSrcCStr, char* theDstCStr, const int maxDstStrLength)
 {
-int		i;
-
-
-	if (theDstCStr != nil && theSrcCStr != nil && maxDstStrLength > 0)
-	{
-		for (i = 0;;i++)
-		{
-			if (theSrcCStr[i] == 0 || i >= maxDstStrLength - 1)
-			{
-				theDstCStr[i] = 0;
-				
-				break;
-			}
-			
-			else
-			{
-				theDstCStr[i] = theSrcCStr[i];
-			}
-		}
-	}
+    if (theDstCStr != nullptr && theSrcCStr != nullptr && maxDstStrLength > 0)
+    {
+        int i;
+        for (i = 0; theSrcCStr[i] != '\0' && i < maxDstStrLength - 1; i++)
+        {
+            theDstCStr[i] = theSrcCStr[i];
+        }
+        theDstCStr[i] = '\0';
+    }
 }
 
-
-
-void CopyCSubstrToCStr(const char *theSrcCStr,const int maxCharsToCopy,char *theDstCStr,const int maxDstStrLength)
+void CopyCSubstrToCStr(const char* theSrcCStr, const int maxCharsToCopy, char* theDstCStr, const int maxDstStrLength)
 {
-int		i;
-
-
-	if (theDstCStr != nil && theSrcCStr != nil && maxDstStrLength > 0)
-	{
-		for (i = 0;;i++)
-		{
-			if (theSrcCStr[i] == 0 || i >= maxDstStrLength - 1 || i >= maxCharsToCopy)
-			{
-				theDstCStr[i] = 0;
-				
-				break;
-			}
-			
-			else
-			{
-				theDstCStr[i] = theSrcCStr[i];
-			}
-		}
-	}
+    if (theDstCStr != nullptr && theSrcCStr != nullptr && maxDstStrLength > 0)
+    {
+        int i;
+        for (i = 0; theSrcCStr[i] != '\0' && i < maxDstStrLength - 1 && i < maxCharsToCopy; i++)
+        {
+            theDstCStr[i] = theSrcCStr[i];
+        }
+        theDstCStr[i] = '\0';
+    }
 }
 
 
@@ -184,7 +75,7 @@ int		theMaxDstStrLength;
 	
 	theMaxDstStrLength = maxDstStrLength;
 
-	if (theDstPStr != nil && theSrcCStr != nil && theMaxDstStrLength > 0)
+	if (theDstPStr != nullptr&& theSrcCStr != nullptr&& theMaxDstStrLength > 0)
 	{
 		if (theMaxDstStrLength > 255)
 		{
@@ -219,7 +110,7 @@ int		theMaxDstStrLength;
 	
 	theMaxDstStrLength = maxDstStrLength;
 
-	if (theDstPStr != nil && theSrcCStr != nil && theMaxDstStrLength > 0)
+	if (theDstPStr != nullptr&& theSrcCStr != nullptr&& theMaxDstStrLength > 0)
 	{
 		if (theMaxDstStrLength > 255)
 		{
@@ -250,7 +141,7 @@ void ConcatPStrToCStr(const unsigned char *thePStr,char *theCStr,const int maxCS
 int		i,numPChars,cStrLength;
 
 
-	if (thePStr != nil && theCStr != nil && maxCStrLength > 0)
+	if (thePStr != nullptr&& theCStr != nullptr&& maxCStrLength > 0)
 	{
 		for (cStrLength = 0;theCStr[cStrLength] != 0;cStrLength++)
 		{
@@ -287,7 +178,7 @@ int		theMaxDstStrLength;
 	
 	theMaxDstStrLength = maxDstStrLength;
 	
-	if (theSrcPStr != nil && theDstPStr != nil && theMaxDstStrLength > 0)
+	if (theSrcPStr != nullptr&& theDstPStr != nullptr&& theMaxDstStrLength > 0)
 	{
 		if (theMaxDstStrLength > 255)
 		{
@@ -321,7 +212,7 @@ int		theMaxDstStrLength;
 	
 	theMaxDstStrLength = maxDstStrLength;
 
-	if (theSrcCStr != nil && theDstPStr != nil && theMaxDstStrLength > 0)
+	if (theSrcCStr != nullptr&& theDstPStr != nullptr&& theMaxDstStrLength > 0)
 	{
 		if (theMaxDstStrLength > 255)
 		{
@@ -357,7 +248,7 @@ void ConcatCStrToCStr(const char *theSrcCStr,char *theDstCStr,const int maxCStrL
 int		cStrLength;
 
 
-	if (theSrcCStr != nil && theDstCStr != nil && maxCStrLength > 0)
+	if (theSrcCStr != nullptr&& theDstCStr != nullptr&& maxCStrLength > 0)
 	{
 		for (cStrLength = 0;theDstCStr[cStrLength] != 0;cStrLength++)
 		{
@@ -389,7 +280,7 @@ void ConcatCharToCStr(const char theChar,char *theDstCStr,const int maxCStrLengt
 int		cStrLength;
 
 
-	if (theDstCStr != nil && maxCStrLength > 0)
+	if (theDstCStr != nullptr&& maxCStrLength > 0)
 	{
 		cStrLength = CStrLength(theDstCStr);
 		
@@ -408,7 +299,7 @@ void ConcatCharToPStr(const char theChar,unsigned char *theDstPStr,const int max
 int		pStrLength;
 
 
-	if (theDstPStr != nil && maxPStrLength > 0)
+	if (theDstPStr != nullptr&& maxPStrLength > 0)
 	{
 		pStrLength = PStrLength(theDstPStr);
 		
@@ -432,7 +323,7 @@ char	firstChar,secondChar;
 	returnValue = 0;
 	
 	
-	if (theFirstCStr != nil && theSecondCStr != nil)
+	if (theFirstCStr != nullptr&& theSecondCStr != nil)
 	{
 		for (;;)
 		{
@@ -537,7 +428,7 @@ char	firstChar,secondChar;
 	returnValue = 0;
 	
 	
-	if (theFirstPStr != nil && theSecondPStr != nil)
+	if (theFirstPStr != nullptr&& theSecondPStr != nil)
 	{
 		for (i = 1;;i++)
 		{
@@ -609,7 +500,7 @@ char	tempString[256];
 	
 	returnValue = 0;
 	
-	if (theCStr != nil && thePStr != nil)
+	if (theCStr != nullptr&& thePStr != nil)
 	{
 		CopyPStrToCStr(thePStr,tempString,sizeof(tempString));
 		
@@ -1015,7 +906,7 @@ long		handleMaxLength,handleCurrentLength,stringLength,byteCount;
 	}
 	
 	
-	if (currentLength != nil && *currentLength >= 0)
+	if (currentLength != nullptr&& *currentLength >= 0)
 	{
 		handleCurrentLength = *currentLength;
 	}
@@ -1100,7 +991,7 @@ long		handleMaxLength,handleCurrentLength,byteCount;
 	}
 	
 	
-	if (currentLength != nil && *currentLength >= 0)
+	if (currentLength != nullptr&& *currentLength >= 0)
 	{
 		handleCurrentLength = *currentLength;
 	}
@@ -1219,7 +1110,7 @@ unsigned long	theNumBytes;
 	
 	theNumBytes = numBytes;
 	
-	if (theMemPtr != nil && theNumBytes > 0)
+	if (theMemPtr != nullptr&& theNumBytes > 0)
 	{
 		theBytePtr = (unsigned char	*) theMemPtr;
 		
@@ -1346,7 +1237,7 @@ long FindCStrOffsetInCStr(const char *theCSubstring,const char *theCString,const
 long	theOffset = -1;
 
 
-	if (theCSubstring != nil && theCString != nil)
+	if (theCSubstring != nullptr&& theCString != nil)
 	{
 		for (theOffset = 0;;theOffset++)
 		{
@@ -1409,7 +1300,7 @@ int		numCharsToInsert;
 int		numCharsToShift;
 
 	
-	if (theDstCStr != nil && theSrcCStr != nil && maxDstStrLength > 0 && theInsertionOffset < maxDstStrLength - 1)
+	if (theDstCStr != nullptr&& theSrcCStr != nullptr&& maxDstStrLength > 0 && theInsertionOffset < maxDstStrLength - 1)
 	{
 		currentLength = CStrLength(theDstCStr);
 		
@@ -1462,7 +1353,7 @@ int		numCharsToInsert;
 int		numCharsToShift;
 
 	
-	if (theDstCStr != nil && theSrcPStr != nil && maxDstStrLength > 0 && theInsertionOffset < maxDstStrLength - 1)
+	if (theDstCStr != nullptr&& theSrcPStr != nullptr&& maxDstStrLength > 0 && theInsertionOffset < maxDstStrLength - 1)
 	{
 		currentLength = CStrLength(theDstCStr);
 		
@@ -1579,7 +1470,7 @@ const long	theLongInts[] = { long1,long2,long3 };
 
 void CopyCStrAndInsertCStrIntoCStr(const char *theSrcCStr,const char *theInsertCStr,char *theDstCStr,const int maxDstStrLength)
 {
-const char	*theCStrs[2] = { theInsertCStr,nil };
+const char	*theCStrs[2] = { theInsertCStr,nullptr};
 
 	CopyCStrAndInsertCStrsLongIntsIntoCStr(theSrcCStr,theCStrs,nil,theDstCStr,maxDstStrLength);
 }
@@ -1588,7 +1479,7 @@ const char	*theCStrs[2] = { theInsertCStr,nil };
 
 void CopyCStrAndInsertCStrLongIntIntoCStr(const char *theSrcCStr,const char *theInsertCStr,const long theNum,char *theDstCStr,const int maxDstStrLength)
 {
-const char	*theCStrs[2] = { theInsertCStr,nil };
+const char	*theCStrs[2] = { theInsertCStr,nullptr};
 const long	theLongInts[1] = { theNum };
 
 	CopyCStrAndInsertCStrsLongIntsIntoCStr(theSrcCStr,theCStrs,theLongInts,theDstCStr,maxDstStrLength);
@@ -1605,7 +1496,7 @@ int			theLongIntIndex = 0;
 	
 	theMaxDstStrLength = maxDstStrLength;
 	
-	if (theDstCStr != nil && theSrcCStr != nil && theMaxDstStrLength > 0)
+	if (theDstCStr != nullptr&& theSrcCStr != nullptr&& theMaxDstStrLength > 0)
 	{
 		dstCharIndex = 0;
 		
@@ -1639,7 +1530,7 @@ int			theLongIntIndex = 0;
 			
 			//	Did we find a '%s'?
 			
-			else if (theInsertCStrs != nil && theInsertCStrs[theCStrIndex] != nil && theSrcCStr[srcCharIndex] == '%' && theSrcCStr[srcCharIndex + 1] == 's')
+			else if (theInsertCStrs != nullptr&& theInsertCStrs[theCStrIndex] != nullptr&& theSrcCStr[srcCharIndex] == '%' && theSrcCStr[srcCharIndex + 1] == 's')
 			{
 				//	Skip over the '%s'
 				
@@ -1659,7 +1550,7 @@ int			theLongIntIndex = 0;
 			
 			//	Did we find a '%ld'?
 			
-			else if (theLongInts != nil && theSrcCStr[srcCharIndex] == '%' && theSrcCStr[srcCharIndex + 1] == 'l' && theSrcCStr[srcCharIndex + 2] == 'd')
+			else if (theLongInts != nullptr&& theSrcCStr[srcCharIndex] == '%' && theSrcCStr[srcCharIndex + 1] == 'l' && theSrcCStr[srcCharIndex + 2] == 'd')
 			{
 				//	Skip over the '%ld'
 				
@@ -2235,7 +2126,7 @@ int		theSrcCharIndex;
 int		numOccurrences = -1;
 
 
-	if (inSrcCStr != nil && inChar != '\0')
+	if (inSrcCStr != nullptr&& inChar != '\0')
 	{
 		numOccurrences = 0;
 		
@@ -2330,7 +2221,7 @@ int		theDstCharIndex;
 	}
 	
 	
-	if (outDstCharPtr != nil && inDstCharPtrMaxLength > 0 && inItemNumber >= 0 && inItemDelimiter != 0)
+	if (outDstCharPtr != nullptr&& inDstCharPtrMaxLength > 0 && inItemNumber >= 0 && inItemDelimiter != 0)
 	{
 		*outDstCharPtr = 0;
 		
@@ -2732,7 +2623,7 @@ EXITPOINT:
 
 void SkipWhiteSpace(char **ioSrcCharPtr,const Boolean inStopAtEOL)
 {
-	if (ioSrcCharPtr != nil && *ioSrcCharPtr != nil)
+	if (ioSrcCharPtr != nullptr&& *ioSrcCharPtr != nil)
 	{
 		if (inStopAtEOL)
 		{
