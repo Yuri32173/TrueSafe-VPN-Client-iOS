@@ -1,61 +1,3 @@
-/* apps/crl.c */
-/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
- * All rights reserved.
- *
- * This package is an SSL implementation written
- * by Eric Young (eay@cryptsoft.com).
- * The implementation was written so as to conform with Netscapes SSL.
- *
- * This library is free for commercial and non-commercial use as long as
- * the following conditions are aheared to.  The following conditions
- * apply to all code found in this distribution, be it the RC4, RSA,
- * lhash, DES, etc., code; not just the SSL code.  The SSL documentation
- * included with this distribution is covered by the same copyright terms
- * except that the holder is Tim Hudson (tjh@cryptsoft.com).
- *
- * Copyright remains Eric Young's, and as such any Copyright notices in
- * the code are not to be removed.
- * If this package is used in a product, Eric Young should be given attribution
- * as the author of the parts of the library used.
- * This can be in the form of a textual message at program startup or
- * in documentation (online or textual) provided with the package.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    "This product includes cryptographic software written by
- *     Eric Young (eay@cryptsoft.com)"
- *    The word 'cryptographic' can be left out if the rouines from the library
- *    being used are not cryptographic related :-).
- * 4. If you include any Windows specific code (or a derivative thereof) from
- *    the apps directory (application code) you must include an acknowledgement:
- *    "This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
- *
- * THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * The licence and distribution terms for any publically available version or
- * derivative of this code cannot be changed.  i.e. this code cannot simply be
- * copied and put under another distribution licence
- * [including the GNU Public Licence.]
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -159,8 +101,241 @@ int MAIN(int argc, char **argv)
             if (!args_from_file(++argv, Nargc, Nargv)) {
                 goto end;
             }
-        */}
+        }
 #endif
+
+        /* handle standard options */
+        if (strcmp(*argv, "-inform") == 0) {
+            if (--argc < 1)
+                goto bad;
+            informat = str2fmt(*(++argv));
+        } else if (strcmp(*argv, "-outform") == 0) {
+            if (--argc < 1)
+                goto bad;
+            outformat = str2fmt(*(++argv));
+        } else if (strcmp(*argv, "-text") == 0) {
+            text = 1;
+        } else if (strcmp(*argv, "-in") == 0) {
+            if (--argc < 1)
+                goto bad;
+            infile = *(++argv);
+        } else if (strcmp(*argv, "-out") == 0) {
+            if (--argc < 1)
+                goto bad;
+            outfile = *(++argv);
+        } else if (strcmp(*argv, "-hash") == 0) {
+            hash = 1;
+        } else if (strcmp(*argv, "-hash_old") == 0) {
+#ifndef OPENSSL_NO_MD5
+            hash_old = 1;
+#else
+            BIO_printf(bio_err, "Warning: MD5 hashes are disabled.\n");
+#endif
+        } else if (strcmp(*argv, "-fingerprint") == 0) {
+            fingerprint = 1;
+        } else if (strcmp(*argv, "-issuer") == 0) {
+            issuer = 1;
+        } else if (strcmp(*argv, "-lastupdate") == 0) {
+            lastupdate = 1;
+        } else if (strcmp(*argv, "-nextupdate") == 0) {
+            nextupdate = 1;
+        } else if (strcmp(*argv, "-crlnumber") == 0) {
+            crlnumber = 1;
+        } else if (strcmp(*argv, "-noout") == 0) {
+            noout = 1;
+        } else if (strcmp(*argv, "-CAfile") == 0) {
+            if (--argc < 1)
+                goto bad;
+            CAfile = *(++argv);
+        } else if (strcmp(*argv, "-CApath") == 0) {
+            if (--argc < 1)
+                goto bad;
+            CApath = *(++argv);
+        } else if (strcmp(*argv, "-nameopt") == 0) {
+            if (--argc < 1)
+                goto bad;
+            if (!set_name_ex(&nmflag, *(++argv)))
+                goto bad;
+        } else {
+            BIO_printf(bio_err, "unknown option %s\n", *argv);
+            badops = 1;
+        }
+
+        argc--;
+        argv++;
+    }
+
+    if (bio_out != NULL) {
+        out = bio_out;
+    } else {
+        if (outfile == NULL) {
+            out = BIO_new_fp(stdout, BIO_NOCLOSE);
+        } else {
+            out = BIO_new_file(outfile, "w");
+        }
+        if (out == NULL) {
+            BIO_printf(bio_err, "Error opening output file %s\n", outfile);
+            goto end;
+        }
+    }
+
+    if (infile == NULL) {
+        if (informat == FORMAT_ASN1 || informat == FORMAT_PEM) {
+            x = PEM_read_bio_X509_CRL(stdin, NULL, NULL, NULL);
+        } else {
+            BIO_printf(bio_err, "bad input format specified for input crl\n");
+            goto end;
+        }
+    } else {
+        if (informat == FORMAT_ASN1 || informat == FORMAT_PEM) {
+            x = load_crl(infile, informat, 0, NULL, NULL, "input crl");
+        } else {
+            BIO_printf(bio_err, "bad input format specified for input crl\n");
+            goto end;
+        }
+    }
+
+    if (x == NULL) {
+        BIO_printf(bio_err, "unable to load CRL\n");
+        goto end;
+    }
+
+    if (CAfile != NULL || CApath != NULL) {
+        X509_STORE_set_verify_cb(store, crl_check_cb);
+        X509_STORE_set_verify(store, crl_check);
+    }
+
+    if (CApath != NULL) {
+        lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
+        if (lookup == NULL) {
+            goto end;
+        }
+        X509_LOOKUP_add_dir(lookup, CApath, X509_FILETYPE_PEM);
+    }
+
+    if (CAfile != NULL) {
+        lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
+        if (lookup == NULL) {
+            goto end;
+        }
+        X509_LOOKUP_load_file(lookup, CAfile, X509_FILETYPE_PEM);
+    }
+
+    if (store != NULL) {
+        X509_STORE_set_flags(store, 0);
+        X509_STORE_CTX_init(&ctx, store, x, NULL);
+        if (X509_verify_cert(&ctx) <= 0) {
+            int n;
+            badsig = 1;
+            while ((n = X509_STORE_CTX_get_error(&ctx))) {
+                char buf[256];
+                BIO_printf(bio_err, "verify error:num=%d:%s\n",
+                           n, X509_verify_cert_error_string(n));
+                if (X509_STORE_CTX_get_error_depth(&ctx) == 0) {
+                    BIO_snprintf(buf, sizeof(buf),
+                                 "CRL signature failure in %s", infile);
+                    add_to_end(&badops, buf);
+                }
+            }
+        }
+    }
+
+    if (badops) {
+        for (i = 0; i < sk_OPENSSL_STRING_num(errors); i++) {
+            BIO_printf(bio_err, "%s\n",
+                       sk_OPENSSL_STRING_value(errors, i));
+        }
+        goto end;
+    }
+
+    if (noout) {
+        ret = 0;
+        goto end;
+    }
+
+    if (text) {
+        X509_CRL_print(out, x);
+    }
+
+    if (hash) {
+        unsigned int n;
+        unsigned char md[EVP_MAX_MD_SIZE];
+
+        if (!X509_CRL_digest(x, digest, md, &n)) {
+            BIO_printf(bio_err, "out of memory\n");
+            goto end;
+        }
+        BIO_printf(out, "crl hash=");
+        for (i = 0; i < n; i++) {
+            BIO_printf(out, "%02X%c", md[i], ((i + 1) == n) ? '\n' : ':');
+        }
+    }
+
+    if (fingerprint) {
+        unsigned int n;
+        unsigned char md[EVP_MAX_MD_SIZE];
+
+        if (!X509_CRL_digest(x, EVP_sha1(), md, &n)) {
+            BIO_printf(bio_err, "out of memory\n");
+            goto end;
+        }
+        BIO_printf(out, "crl fingerprint=");
+        for (i = 0; i < n; i++) {
+            BIO_printf(out, "%02X%c", md[i], ((i + 1) == n) ? '\n' : ':');
+        }
+    }
+
+    if (issuer) {
+        X509_NAME_print_ex(out, X509_CRL_get_issuer(x), 0, nmflag);
+        BIO_printf(out, "\n");
+    }
+
+    if (lastupdate) {
+        BIO_printf(out, "lastUpdate=");
+        ASN1_TIME_print(out, X509_CRL_get_lastUpdate(x));
+        BIO_printf(out, "\n");
+    }
+
+    if (nextupdate) {
+        BIO_printf(out, "nextUpdate=");
+        ASN1_TIME_print(out, X509_CRL_get_nextUpdate(x));
+        BIO_printf(out, "\n");
+    }
+
+    if (crlnumber) {
+        int num = X509_CRL_get_ext_by_NID(x, NID_crl_number, -1);
+        if (num >= 0) {
+            X509_EXTENSION *ex = X509_CRL_get_ext(x, num);
+            if (ex) {
+                ASN1_INTEGER *crlnum = X509_EXTENSION_get_data(ex);
+                BIGNUM *bn = ASN1_INTEGER_to_BN(crlnum, NULL);
+                BIO_printf(out, "crlNumber=");
+                if (bn) {
+                    BN_print(out, bn);
+                    BN_free(bn);
+                }
+                BIO_printf(out, "\n");
+            }
+        }
+    }
+
+    ret = 0;
+
+end:
+    if (x != NULL)
+        X509_CRL_free(x);
+    if (store != NULL)
+        X509_STORE_free(store);
+    if (bio_out != NULL && bio_out != bio_err)
+        BIO_free_all(bio_out);
+    BIO_free_all(out);
+
+    if (ret)
+        ERR_print_errors(bio_err);
+
+    return ret;
+}
+
         if (strcmp(*argv, "-inform") == 0) {
             if (--argc < 1)
                 goto bad;
