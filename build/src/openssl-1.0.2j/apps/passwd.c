@@ -54,92 +54,93 @@ static int do_passwd(int passed_salt, char **salt_p, char **salt_malloc_p,
  * -table        - format output as table
  * -reverse      - switch table columns
  */
-
-int MAIN(int, char **);
-
-int MAIN(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     int ret = 1;
     char *infile = NULL;
-    int in_stdin = 0;
-    int in_noverify = 0;
-    char *salt = NULL, *passwd = NULL, **passwds = NULL;
-    char *salt_malloc = NULL, *passwd_malloc = NULL;
+    bool in_stdin = false;
+    bool in_noverify = false;
+    char *salt = NULL;
+    char *passwd = NULL;
+    char **passwds = NULL;
+    char *salt_malloc = NULL;
+    char *passwd_malloc = NULL;
     size_t passwd_malloc_size = 0;
-    int pw_source_defined = 0;
-    BIO *in = NULL, *out = NULL;
+    bool pw_source_defined = false;
+    BIO *in = NULL;
+    BIO *out = NULL;
     int i, badopt, opt_done;
-    int passed_salt = 0, quiet = 0, table = 0, reverse = 0;
-    int usecrypt = 0, use1 = 0, useapr1 = 0;
+    bool passed_salt = false;
+    bool quiet = false;
+    bool table = false;
+    bool reverse = false;
+    bool usecrypt = false;
+    bool use1 = false;
+    bool useapr1 = false;
     size_t pw_maxlen = 0;
 
     apps_startup();
 
-    if (bio_err == NULL)
-        if ((bio_err = BIO_new(BIO_s_file())) != NULL)
-            BIO_set_fp(bio_err, stderr, BIO_NOCLOSE | BIO_FP_TEXT);
-
+    BIO *bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
     if (!load_config(bio_err, NULL))
         goto err;
-    out = BIO_new(BIO_s_file());
-    if (out == NULL)
-        goto err;
-    BIO_set_fp(out, stdout, BIO_NOCLOSE | BIO_FP_TEXT);
-# ifdef OPENSSL_SYS_VMS
+    out = BIO_new_fp(stdout, BIO_NOCLOSE | BIO_FP_TEXT);
+#ifdef OPENSSL_SYS_VMS
     {
         BIO *tmpbio = BIO_new(BIO_f_linebuffer());
         out = BIO_push(tmpbio, out);
     }
-# endif
+#endif
 
     badopt = 0, opt_done = 0;
     i = 0;
     while (!badopt && !opt_done && argv[++i] != NULL) {
         if (strcmp(argv[i], "-crypt") == 0)
-            usecrypt = 1;
+            usecrypt = true;
         else if (strcmp(argv[i], "-1") == 0)
-            use1 = 1;
+            use1 = true;
         else if (strcmp(argv[i], "-apr1") == 0)
-            useapr1 = 1;
+            useapr1 = true;
         else if (strcmp(argv[i], "-salt") == 0) {
             if ((argv[i + 1] != NULL) && (salt == NULL)) {
-                passed_salt = 1;
+                passed_salt = true;
                 salt = argv[++i];
             } else
-                badopt = 1;
+                badopt = true;
         } else if (strcmp(argv[i], "-in") == 0) {
             if ((argv[i + 1] != NULL) && !pw_source_defined) {
-                pw_source_defined = 1;
+                pw_source_defined = true;
                 infile = argv[++i];
             } else
-                badopt = 1;
+                badopt = true;
         } else if (strcmp(argv[i], "-stdin") == 0) {
             if (!pw_source_defined) {
-                pw_source_defined = 1;
-                in_stdin = 1;
+                pw_source_defined = true;
+                in_stdin = true;
             } else
-                badopt = 1;
+                badopt = true;
         } else if (strcmp(argv[i], "-noverify") == 0)
-            in_noverify = 1;
+            in_noverify = true;
         else if (strcmp(argv[i], "-quiet") == 0)
-            quiet = 1;
+            quiet = true;
         else if (strcmp(argv[i], "-table") == 0)
-            table = 1;
+            table = true;
         else if (strcmp(argv[i], "-reverse") == 0)
-            reverse = 1;
+            reverse = true;
         else if (argv[i][0] == '-')
-            badopt = 1;
+            badopt = true;
         else if (!pw_source_defined)
             /* non-option arguments, use as passwords */
         {
-            pw_source_defined = 1;
+            pw_source_defined = true;
             passwds = &argv[i];
-            opt_done = 1;
+            opt_done = true;
         } else
-            badopt = 1;
+            badopt = true;
     }
 
-    if (!usecrypt && !use1 && !useapr1) /* use default */
+
+
+if (!usecrypt && !use1 && !useapr1) /* use default */
         usecrypt = 1;
     if (usecrypt + use1 + useapr1 > 1) /* conflict */
         badopt = 1;
