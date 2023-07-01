@@ -1,179 +1,38 @@
-/* crypto/ex_data.c */
 
-/*
- * Overhaul notes;
- *
- * This code is now *mostly* thread-safe. It is now easier to understand in what
- * ways it is safe and in what ways it is not, which is an improvement. Firstly,
- * all per-class stacks and index-counters for ex_data are stored in the same
- * global LHASH table (keyed by class). This hash table uses locking for all
- * access with the exception of CRYPTO_cleanup_all_ex_data(), which must only be
- * called when no other threads can possibly race against it (even if it was
- * locked, the race would mean it's possible the hash table might have been
- * recreated after the cleanup). As classes can only be added to the hash table,
- * and within each class, the stack of methods can only be incremented, the
- * locking mechanics are simpler than they would otherwise be. For example, the
- * new/dup/free ex_data functions will lock the hash table, copy the method
- * pointers it needs from the relevant class, then unlock the hash table before
- * actually applying those method pointers to the task of the new/dup/free
- * operations. As they can't be removed from the method-stack, only
- * supplemented, there's no race conditions associated with using them outside
- * the lock. The get/set_ex_data functions are not locked because they do not
- * involve this global state at all - they operate directly with a previously
- * obtained per-class method index and a particular "ex_data" variable. These
- * variables are usually instantiated per-context (eg. each RSA structure has
- * one) so locking on read/write access to that variable can be locked locally
- * if required (eg. using the "RSA" lock to synchronise access to a
- * per-RSA-structure ex_data variable if required).
- * [Geoff]
- */
-
-/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
- * All rights reserved.
- *
- * This package is an SSL implementation written
- * by Eric Young (eay@cryptsoft.com).
- * The implementation was written so as to conform with Netscapes SSL.
- *
- * This library is free for commercial and non-commercial use as long as
- * the following conditions are aheared to.  The following conditions
- * apply to all code found in this distribution, be it the RC4, RSA,
- * lhash, DES, etc., code; not just the SSL code.  The SSL documentation
- * included with this distribution is covered by the same copyright terms
- * except that the holder is Tim Hudson (tjh@cryptsoft.com).
- *
- * Copyright remains Eric Young's, and as such any Copyright notices in
- * the code are not to be removed.
- * If this package is used in a product, Eric Young should be given attribution
- * as the author of the parts of the library used.
- * This can be in the form of a textual message at program startup or
- * in documentation (online or textual) provided with the package.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    "This product includes cryptographic software written by
- *     Eric Young (eay@cryptsoft.com)"
- *    The word 'cryptographic' can be left out if the rouines from the library
- *    being used are not cryptographic related :-).
- * 4. If you include any Windows specific code (or a derivative thereof) from
- *    the apps directory (application code) you must include an acknowledgement:
- *    "This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
- *
- * THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * The licence and distribution terms for any publically available version or
- * derivative of this code cannot be changed.  i.e. this code cannot simply be
- * copied and put under another distribution licence
- * [including the GNU Public Licence.]
- */
-/* ====================================================================
- * Copyright (c) 1998-2001 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    openssl-core@openssl.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- *
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim
- * Hudson (tjh@cryptsoft.com).
- *
- */
 
 #include "cryptlib.h"
 #include <openssl/lhash.h>
 
-/* What an "implementation of ex_data functionality" looks like */
+/* Structure for the implementation of ex_data functionality */
 struct st_CRYPTO_EX_DATA_IMPL {
-        /*********************/
-    /* GLOBAL OPERATIONS */
-    /* Return a new class index */
-    int (*cb_new_class) (void);
-    /* Cleanup all state used by the implementation */
-    void (*cb_cleanup) (void);
-        /************************/
-    /* PER-CLASS OPERATIONS */
-    /* Get a new method index within a class */
-    int (*cb_get_new_index) (int class_index, long argl, void *argp,
-                             CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func,
-                             CRYPTO_EX_free *free_func);
-    /* Initialise a new CRYPTO_EX_DATA of a given class */
-    int (*cb_new_ex_data) (int class_index, void *obj, CRYPTO_EX_DATA *ad);
-    /* Duplicate a CRYPTO_EX_DATA of a given class onto a copy */
-    int (*cb_dup_ex_data) (int class_index, CRYPTO_EX_DATA *to,
-                           CRYPTO_EX_DATA *from);
-    /* Cleanup a CRYPTO_EX_DATA of a given class */
-    void (*cb_free_ex_data) (int class_index, void *obj, CRYPTO_EX_DATA *ad);
+    int (*cb_new_class)(void);
+    void (*cb_cleanup)(void);
+    int (*cb_get_new_index)(int class_index, long argl, void *argp,
+                            CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func,
+                            CRYPTO_EX_free *free_func);
+    int (*cb_new_ex_data)(int class_index, void *obj, CRYPTO_EX_DATA *ad);
+    int (*cb_dup_ex_data)(int class_index, CRYPTO_EX_DATA *to,
+                          CRYPTO_EX_DATA *from);
+    void (*cb_free_ex_data)(int class_index, void *obj, CRYPTO_EX_DATA *ad);
 };
 
-/* The implementation we use at run-time */
-static const CRYPTO_EX_DATA_IMPL *impl = NULL;
+/* The default implementation of ex_data */
+static const struct st_CRYPTO_EX_DATA_IMPL impl_default = {
+    .cb_new_class = int_new_class,
+    .cb_cleanup = int_cleanup,
+    .cb_get_new_index = int_get_new_index,
+    .cb_new_ex_data = int_new_ex_data,
+    .cb_dup_ex_data = int_dup_ex_data,
+    .cb_free_ex_data = int_free_ex_data
+};
 
-/*
- * To call "impl" functions, use this macro rather than referring to 'impl'
- * directly, eg. EX_IMPL(get_new_index)(...);
- */
+/* The implementation used at run-time */
+static const struct st_CRYPTO_EX_DATA_IMPL *impl = NULL;
+
+/* Macro for calling "impl" functions */
 #define EX_IMPL(a) impl->cb_##a
 
-/* Predeclare the "default" ex_data implementation */
+/* Predeclare functions for the default ex_data implementation */
 static int int_new_class(void);
 static void int_cleanup(void);
 static int int_get_new_index(int class_index, long argl, void *argp,
@@ -183,19 +42,8 @@ static int int_new_ex_data(int class_index, void *obj, CRYPTO_EX_DATA *ad);
 static int int_dup_ex_data(int class_index, CRYPTO_EX_DATA *to,
                            CRYPTO_EX_DATA *from);
 static void int_free_ex_data(int class_index, void *obj, CRYPTO_EX_DATA *ad);
-static CRYPTO_EX_DATA_IMPL impl_default = {
-    int_new_class,
-    int_cleanup,
-    int_get_new_index,
-    int_new_ex_data,
-    int_dup_ex_data,
-    int_free_ex_data
-};
 
-/*
- * Internal function that checks whether "impl" is set and if not, sets it to
- * the default.
- */
+/* Internal function to check and set the implementation */
 static void impl_check(void)
 {
     CRYPTO_w_lock(CRYPTO_LOCK_EX_DATA);
@@ -204,19 +52,17 @@ static void impl_check(void)
     CRYPTO_w_unlock(CRYPTO_LOCK_EX_DATA);
 }
 
-/*
- * A macro wrapper for impl_check that first uses a non-locked test before
- * invoking the function (which checks again inside a lock).
- */
-#define IMPL_CHECK if(!impl) impl_check();
+/* Macro wrapper for impl_check */
+#define IMPL_CHECK if (!impl) impl_check();
 
-/* API functions to get/set the "ex_data" implementation */
-const CRYPTO_EX_DATA_IMPL *CRYPTO_get_ex_data_implementation(void)
+/* API functions to get/set the ex_data implementation */
+const struct st_CRYPTO_EX_DATA_IMPL *CRYPTO_get_ex_data_implementation(void)
 {
-    IMPL_CHECK return impl;
+    IMPL_CHECK
+    return impl;
 }
 
-int CRYPTO_set_ex_data_implementation(const CRYPTO_EX_DATA_IMPL *i)
+int CRYPTO_set_ex_data_implementation(const struct st_CRYPTO_EX_DATA_IMPL *i)
 {
     int toret = 0;
     CRYPTO_w_lock(CRYPTO_LOCK_EX_DATA);
