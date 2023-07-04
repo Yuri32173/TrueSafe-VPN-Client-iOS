@@ -61,9 +61,11 @@
 #include <openssl/objects.h>
 #include <openssl/engine.h>
 #include <openssl/rand.h>
+
 #ifndef OPENSSL_NO_RSA
 #include <openssl/rsa.h>
 #endif
+
 #include <openssl/bn.h>
 
 #ifndef OPENSSL_NO_HW
@@ -82,38 +84,38 @@ static int ibm_4758_cca_init(ENGINE *e);
 static int ibm_4758_cca_finish(ENGINE *e);
 static int ibm_4758_cca_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)(void));
 
-/* rsa functions */
+/* RSA functions */
 /*---------------*/
 #ifndef OPENSSL_NO_RSA
 static int cca_rsa_pub_enc(int flen, const unsigned char *from,
-		unsigned char *to, RSA *rsa,int padding);
+                           unsigned char *to, RSA *rsa, int padding);
 static int cca_rsa_priv_dec(int flen, const unsigned char *from,
-		unsigned char *to, RSA *rsa,int padding);
+                            unsigned char *to, RSA *rsa, int padding);
 static int cca_rsa_sign(int type, const unsigned char *m, unsigned int m_len,
-		unsigned char *sigret, unsigned int *siglen, const RSA *rsa);
+                        unsigned char *sigret, unsigned int *siglen, const RSA *rsa);
 static int cca_rsa_verify(int dtype, const unsigned char *m, unsigned int m_len,
-	const unsigned char *sigbuf, unsigned int siglen, const RSA *rsa);
+                          const unsigned char *sigbuf, unsigned int siglen, const RSA *rsa);
 
-/* utility functions */
-/*-----------------------*/
-static EVP_PKEY *ibm_4758_load_privkey(ENGINE*, const char*,
-		UI_METHOD *ui_method, void *callback_data);
-static EVP_PKEY *ibm_4758_load_pubkey(ENGINE*, const char*,
-		UI_METHOD *ui_method, void *callback_data);
+/* Utility functions */
+/*-------------------*/
+static EVP_PKEY *ibm_4758_load_privkey(ENGINE *, const char *,
+                                       UI_METHOD *ui_method, void *callback_data);
+static EVP_PKEY *ibm_4758_load_pubkey(ENGINE *, const char *,
+                                      UI_METHOD *ui_method, void *callback_data);
 
 static int getModulusAndExponent(const unsigned char *token, long *exponentLength,
-		unsigned char *exponent, long *modulusLength,
-		long *modulusFieldLength, unsigned char *modulus);
+                                 unsigned char *exponent, long *modulusLength,
+                                 long *modulusFieldLength, unsigned char *modulus);
 #endif
 
 /* RAND number functions */
 /*-----------------------*/
-static int cca_get_random_bytes(unsigned char*, int);
+static int cca_get_random_bytes(unsigned char *, int);
 static int cca_random_status(void);
 
 #ifndef OPENSSL_NO_RSA
 static void cca_ex_free(void *obj, void *item, CRYPTO_EX_DATA *ad,
-		int idx,long argl, void *argp);
+                        int idx, long argl, void *argp);
 #endif
 
 /* Function pointers for CCA verbs */
