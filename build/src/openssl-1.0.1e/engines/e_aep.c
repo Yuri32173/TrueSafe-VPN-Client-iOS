@@ -55,33 +55,21 @@
 #include <stdio.h>
 #include <openssl/bn.h>
 #include <string.h>
-
-#include <openssl/e_os2.h>
-#if !defined(OPENSSL_SYS_MSDOS) || defined(__DJGPP__) || defined(__MINGW32__)
 #include <sys/types.h>
 #include <unistd.h>
-#else
-#include <process.h>
-typedef int pid_t;
-#endif
-
-#if defined(OPENSSL_SYS_NETWARE) && defined(NETWARE_CLIB)
-#define getpid GetThreadID
-extern int GetThreadID(void);
-#elif defined(_WIN32) && !defined(__WATCOMC__)
-#define getpid _getpid
-#endif
-
 #include <openssl/crypto.h>
 #include <openssl/dso.h>
 #include <openssl/engine.h>
 #include <openssl/buffer.h>
+
 #ifndef OPENSSL_NO_RSA
 #include <openssl/rsa.h>
 #endif
+
 #ifndef OPENSSL_NO_DSA
 #include <openssl/dsa.h>
 #endif
+
 #ifndef OPENSSL_NO_DH
 #include <openssl/dh.h>
 #endif
@@ -112,11 +100,11 @@ static AEP_RV aep_close_all_connections(int use_engine_lock, int *in_use);
 /* BIGNUM stuff */
 #ifndef OPENSSL_NO_RSA
 static int aep_mod_exp(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-	const BIGNUM *m, BN_CTX *ctx);
+                       const BIGNUM *m, BN_CTX *ctx);
 
-static AEP_RV aep_mod_exp_crt(BIGNUM *r,const  BIGNUM *a, const BIGNUM *p,
-	const BIGNUM *q, const BIGNUM *dmp1,const BIGNUM *dmq1,
-	const BIGNUM *iqmp, BN_CTX *ctx);
+static AEP_RV aep_mod_exp_crt(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
+                              const BIGNUM *q, const BIGNUM *dmp1, const BIGNUM *dmq1,
+                              const BIGNUM *iqmp, BN_CTX *ctx);
 #endif
 
 /* RSA stuff */
@@ -127,34 +115,32 @@ static int aep_rsa_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa, BN_CTX *ctx);
 /* This function is aliased to mod_exp (with the mont stuff dropped). */
 #ifndef OPENSSL_NO_RSA
 static int aep_mod_exp_mont(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-	const BIGNUM *m, BN_CTX *ctx, BN_MONT_CTX *m_ctx);
+                            const BIGNUM *m, BN_CTX *ctx, BN_MONT_CTX *m_ctx);
 #endif
 
 /* DSA stuff */
 #ifndef OPENSSL_NO_DSA
 static int aep_dsa_mod_exp(DSA *dsa, BIGNUM *rr, BIGNUM *a1,
-	BIGNUM *p1, BIGNUM *a2, BIGNUM *p2, BIGNUM *m,
-	BN_CTX *ctx, BN_MONT_CTX *in_mont);
+                           BIGNUM *p1, BIGNUM *a2, BIGNUM *p2, BIGNUM *m,
+                           BN_CTX *ctx, BN_MONT_CTX *in_mont);
 
 static int aep_mod_exp_dsa(DSA *dsa, BIGNUM *r, BIGNUM *a,
-	const BIGNUM *p, const BIGNUM *m, BN_CTX *ctx,
-	BN_MONT_CTX *m_ctx);
+                           const BIGNUM *p, const BIGNUM *m, BN_CTX *ctx,
+                           BN_MONT_CTX *m_ctx);
 #endif
 
 /* DH stuff */
 /* This function is aliased to mod_exp (with the DH and mont dropped). */
 #ifndef OPENSSL_NO_DH
 static int aep_mod_exp_dh(const DH *dh, BIGNUM *r, const BIGNUM *a,
-	const BIGNUM *p, const BIGNUM *m, BN_CTX *ctx, BN_MONT_CTX *m_ctx);
+                          const BIGNUM *p, const BIGNUM *m, BN_CTX *ctx, BN_MONT_CTX *m_ctx);
 #endif
 
 /* rand stuff   */
 #ifdef AEPRAND
 static int aep_rand(unsigned char *buf, int num);
 static int aep_rand_status(void);
-#endif
-
-/* Bignum conversion stuff */
+#endif/* Bignum conversion stuff */
 static AEP_RV GetBigNumSize(AEP_VOID_PTR ArbBigNum, AEP_U32* BigNumSize);
 static AEP_RV MakeAEPBigNum(AEP_VOID_PTR ArbBigNum, AEP_U32 BigNumSize,
 	unsigned char* AEP_BigNum);
