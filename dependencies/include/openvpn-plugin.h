@@ -1,26 +1,3 @@
-/*
- *  OpenVPN -- An application to securely tunnel IP networks
- *             over a single TCP/UDP port, with support for SSL/TLS-based
- *             session authentication and key exchange,
- *             packet encryption, packet authentication, and
- *             packet compression.
- *
- *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2
- *  as published by the Free Software Foundation.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program (see the file COPYING included with this
- *  distribution); if not, write to the Free Software Foundation, Inc.,
- *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #ifndef OPENVPN_PLUGIN_H_
 #define OPENVPN_PLUGIN_H_
@@ -49,68 +26,6 @@ typedef X509 openvpn_x509_cert_t;
 extern "C" {
 #endif
 
-/*
- * Plug-in types.  These types correspond to the set of script callbacks
- * supported by OpenVPN.
- *
- * This is the general call sequence to expect when running in server mode:
- *
- * Initial Server Startup:
- *
- * FUNC: openvpn_plugin_open_v1
- * FUNC: openvpn_plugin_client_constructor_v1 (this is the top-level "generic"
- *                                             client template)
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_UP
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_ROUTE_UP
- *
- * New Client Connection:
- *
- * FUNC: openvpn_plugin_client_constructor_v1
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_ENABLE_PF
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_TLS_VERIFY (called once for every cert
- *                                                     in the server chain)
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_TLS_FINAL
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_IPCHANGE
- *
- * [If OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY returned OPENVPN_PLUGIN_FUNC_DEFERRED,
- * we don't proceed until authentication is verified via auth_control_file]
- *
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_CLIENT_CONNECT_V2
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_LEARN_ADDRESS
- * 
- * [Client session ensues]
- *
- * For each "TLS soft reset", according to reneg-sec option (or similar):
- *
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_ENABLE_PF
- *
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_TLS_VERIFY (called once for every cert
- *                                                     in the server chain)
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_TLS_FINAL
- * 
- * [If OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY returned OPENVPN_PLUGIN_FUNC_DEFERRED,
- * we expect that authentication is verified via auth_control_file within
- * the number of seconds defined by the "hand-window" option.  Data channel traffic
- * will continue to flow uninterrupted during this period.]
- *
- * [Client session continues]
- *
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_CLIENT_DISCONNECT
- * FUNC: openvpn_plugin_client_destructor_v1
- *
- * [ some time may pass ]
- *
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_LEARN_ADDRESS (this coincides with a
- *                                                            lazy free of initial
- *                                                            learned addr object)
- * Server Shutdown:
- *
- * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_DOWN
- * FUNC: openvpn_plugin_client_destructor_v1 (top-level "generic" client)
- * FUNC: openvpn_plugin_close_v1
- */
 #define OPENVPN_PLUGIN_UP                    0
 #define OPENVPN_PLUGIN_DOWN                  1
 #define OPENVPN_PLUGIN_ROUTE_UP              2
@@ -126,20 +41,12 @@ extern "C" {
 #define OPENVPN_PLUGIN_ROUTE_PREDOWN         12
 #define OPENVPN_PLUGIN_N                     13
 
-/*
- * Build a mask out of a set of plug-in types.
- */
+
 #define OPENVPN_PLUGIN_MASK(x) (1<<(x))
 
-/*
- * A pointer to a plugin-defined object which contains
- * the object state.
- */
+
 typedef void *openvpn_plugin_handle_t;
 
-/*
- * Return value for openvpn_plugin_func_v1 function
- */
 #define OPENVPN_PLUGIN_FUNC_SUCCESS  0
 #define OPENVPN_PLUGIN_FUNC_ERROR    1
 #define OPENVPN_PLUGIN_FUNC_DEFERRED 2
@@ -275,81 +182,56 @@ typedef enum {
   SSLAPI_OPENSSL,
   SSLAPI_POLARSSL
 } ovpnSSLAPI;
-class MyClockTick
-    {
-    public:
-      MyClockTick(openvpn_io::io_context& io_context,
-		  OpenVPNClient* parent_arg,
-		  const unsigned int ms)
-	: timer(io_context),
-	  parent(parent_arg),
-	  period(Time::Duration::milliseconds(ms))
+
+class MyClockTick {
+public:
+  MyClockTick(openvpn_io::io_context& io_context, OpenVPNClient* parent_arg, const unsigned int ms)
+    : timer(io_context),
+      parent(parent_arg),
+      period(Time::Duration::milliseconds(ms))
+  {
+  }
+
+  void cancel()
+  {
+    timer.cancel();
+  }
+
+  void detach_from_parent()
+  {
+    parent = nullptr;
+  }
+
+  void schedule()
+  {
+    timer.expires_after(period);
+    timer.async_wait([this](const openvpn_io::error_code& error)
       {
-      }
+        if (!parent || error)
+          return;
+        try {
+          parent->clock_tick();
+        }
+        catch (...)
+        {
+        }
+        schedule();
+      });
+  }
 
-      void cancel()
-      {
-	timer.cancel();
-      }
-
-      void detach_from_parent()
-      {
-	parent = nullptr;
-      }
-
-      void schedule()
-      {
-	timer.expires_after(period);
-	timer.async_wait([this](const openvpn_io::error_code& error)
-			 {
-			   if (!parent || error)
-			     return;
-			   try {
-			     parent->clock_tick();
-			   }
-			   catch (...)
-			     {
-			     }
-			   schedule();
-			 });
-      }
-
-    private:
-      AsioTimer timer;
-      OpenVPNClient* parent;
-      const Time::Duration period;
-    };
-
-/**
- * Arguments used to transport variables to the plug-in.
- * The struct openvpn_plugin_args_open_in is only used
- * by the openvpn_plugin_open_v3() function.
- *
- * STRUCT MEMBERS
- *
- * type_mask : Set by OpenVPN to the logical OR of all script
- *             types which this version of OpenVPN supports.
- *
- * argv : a NULL-terminated array of options provided to the OpenVPN
- *        "plug-in" directive.  argv[0] is the dynamic library pathname.
- *
- * envp : a NULL-terminated array of OpenVPN-set environmental
- *        variables in "name=value" format.  Note that for security reasons,
- *        these variables are not actually written to the "official"
- *        environmental variable store of the process.
- *
- * callbacks : a pointer to the plug-in callback function struct.
- *
- */
-struct openvpn_plugin_args_open_in
-{
-  const int type_mask;
-  const char ** const argv;
-  const char ** const envp;
-  struct openvpn_plugin_callbacks *callbacks;
-  const ovpnSSLAPI ssl_api;
+private:
+  AsioTimer timer;
+  OpenVPNClient* parent;
+  const Time::Duration period;
 };
 
+struct openvpn_plugin_args_open_in {
+  const int type_mask;
+  const char** const argv;
+  const char** const envp;
+  struct openvpn_plugin_callbacks* callbacks;
+  const ovpnSSLAPI ssl_api;
+};
 
 /**
  * Arguments used to transport variables from the plug-in back
