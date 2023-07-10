@@ -1,63 +1,3 @@
-/* crypto/engine/e_chil.c */
-/*
- * Written by Richard Levitte (richard@levitte.org), Geoff Thorpe
- * (geoff@geoffthorpe.net) and Dr Stephen N Henson (steve@openssl.org) for
- * the OpenSSL project 2000.
- */
-/* ====================================================================
- * Copyright (c) 1999-2001 The OpenSSL Project.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.OpenSSL.org/)"
- *
- * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
- *    endorse or promote products derived from this software without
- *    prior written permission. For written permission, please contact
- *    licensing@OpenSSL.org.
- *
- * 5. Products derived from this software may not be called "OpenSSL"
- *    nor may "OpenSSL" appear in their names without prior written
- *    permission of the OpenSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
- *
- * This product includes cryptographic software written by Eric Young
- * (eay@cryptsoft.com).  This product includes software written by Tim
- * Hudson (tjh@cryptsoft.com).
- *
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <openssl/crypto.h>
@@ -67,99 +7,79 @@
 #include <openssl/ui.h>
 #include <openssl/rand.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+#include <openssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+#include <openssl/dh.h>
 #endif
 #include <openssl/bn.h>
 
 #ifndef OPENSSL_NO_HW
-# ifndef OPENSSL_NO_HW_CHIL
+#ifndef OPENSSL_NO_HW_CHIL
 
-/*-
- * Attribution notice: nCipher have said several times that it's OK for
- * us to implement a general interface to their boxes, and recently declared
- * their HWCryptoHook to be public, and therefore available for us to use.
- * Thanks, nCipher.
- *
- * The hwcryptohook.h included here is from May 2000.
- * [Richard Levitte]
- */
-#  ifdef FLAT_INC
-#   include "hwcryptohook.h"
-#  else
-#   include "vendor_defns/hwcryptohook.h"
-#  endif
+#ifdef FLAT_INC
+#include "hwcryptohook.h"
+#else
+#include "vendor_defns/hwcryptohook.h"
+#endif
 
-#  define HWCRHK_LIB_NAME "CHIL engine"
-#  include "e_chil_err.c"
+#define HWCRHK_LIB_NAME "CHIL engine"
+#include "e_chil_err.c"
 
-static int hwcrhk_destroy(ENGINE *e);
-static int hwcrhk_init(ENGINE *e);
-static int hwcrhk_finish(ENGINE *e);
-static int hwcrhk_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void));
+static int hwcrhk_destroy(ENGINE* e);
+static int hwcrhk_init(ENGINE* e);
+static int hwcrhk_finish(ENGINE* e);
+static int hwcrhk_ctrl(ENGINE* e, int cmd, long i, void* p, void (*f)(void));
 
-/* Functions to handle mutexes */
-static int hwcrhk_mutex_init(HWCryptoHook_Mutex *,
-                             HWCryptoHook_CallerContext *);
-static int hwcrhk_mutex_lock(HWCryptoHook_Mutex *);
-static void hwcrhk_mutex_unlock(HWCryptoHook_Mutex *);
-static void hwcrhk_mutex_destroy(HWCryptoHook_Mutex *);
+static int hwcrhk_mutex_init(HWCryptoHook_Mutex*, HWCryptoHook_CallerContext*);
+static int hwcrhk_mutex_lock(HWCryptoHook_Mutex*);
+static void hwcrhk_mutex_unlock(HWCryptoHook_Mutex*);
+static void hwcrhk_mutex_destroy(HWCryptoHook_Mutex*);
 
-/* BIGNUM stuff */
-static int hwcrhk_mod_exp(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-                          const BIGNUM *m, BN_CTX *ctx);
+static int hwcrhk_mod_exp(BIGNUM* r, const BIGNUM* a, const BIGNUM* p,
+                          const BIGNUM* m, BN_CTX* ctx);
 
-#  ifndef OPENSSL_NO_RSA
-/* RSA stuff */
-static int hwcrhk_rsa_mod_exp(BIGNUM *r, const BIGNUM *I, RSA *rsa,
-                              BN_CTX *ctx);
-/* This function is aliased to mod_exp (with the mont stuff dropped). */
-static int hwcrhk_mod_exp_mont(BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
-                               const BIGNUM *m, BN_CTX *ctx,
-                               BN_MONT_CTX *m_ctx);
-static int hwcrhk_rsa_finish(RSA *rsa);
-#  endif
+#ifndef OPENSSL_NO_RSA
+static int hwcrhk_rsa_mod_exp(BIGNUM* r, const BIGNUM* I, RSA* rsa,
+                              BN_CTX* ctx);
+static int hwcrhk_mod_exp_mont(BIGNUM* r, const BIGNUM* a, const BIGNUM* p,
+                               const BIGNUM* m, BN_CTX* ctx,
+                               BN_MONT_CTX* m_ctx);
+static int hwcrhk_rsa_finish(RSA* rsa);
+#endif
 
-#  ifndef OPENSSL_NO_DH
-/* DH stuff */
-/* This function is alised to mod_exp (with the DH and mont dropped). */
-static int hwcrhk_mod_exp_dh(const DH *dh, BIGNUM *r,
-                             const BIGNUM *a, const BIGNUM *p,
-                             const BIGNUM *m, BN_CTX *ctx,
-                             BN_MONT_CTX *m_ctx);
-#  endif
+#ifndef OPENSSL_NO_DH
+static int hwcrhk_mod_exp_dh(const DH* dh, BIGNUM* r,
+                             const BIGNUM* a, const BIGNUM* p,
+                             const BIGNUM* m, BN_CTX* ctx,
+                             BN_MONT_CTX* m_ctx);
+#endif
 
-/* RAND stuff */
-static int hwcrhk_rand_bytes(unsigned char *buf, int num);
+static int hwcrhk_rand_bytes(unsigned char* buf, int num);
 static int hwcrhk_rand_status(void);
 
-/* KM stuff */
-static EVP_PKEY *hwcrhk_load_privkey(ENGINE *eng, const char *key_id,
-                                     UI_METHOD *ui_method,
-                                     void *callback_data);
-static EVP_PKEY *hwcrhk_load_pubkey(ENGINE *eng, const char *key_id,
-                                    UI_METHOD *ui_method,
-                                    void *callback_data);
+static EVP_PKEY* hwcrhk_load_privkey(ENGINE* eng, const char* key_id,
+                                     UI_METHOD* ui_method,
+                                     void* callback_data);
+static EVP_PKEY* hwcrhk_load_pubkey(ENGINE* eng, const char* key_id,
+                                    UI_METHOD* ui_method,
+                                    void* callback_data);
 
-/* Interaction stuff */
-static int hwcrhk_insert_card(const char *prompt_info,
-                              const char *wrong_info,
-                              HWCryptoHook_PassphraseContext * ppctx,
-                              HWCryptoHook_CallerContext * cactx);
-static int hwcrhk_get_pass(const char *prompt_info,
-                           int *len_io, char *buf,
-                           HWCryptoHook_PassphraseContext * ppctx,
-                           HWCryptoHook_CallerContext * cactx);
-static void hwcrhk_log_message(void *logstr, const char *message);
+static int hwcrhk_insert_card(const char* prompt_info,
+                              const char* wrong_info,
+                              HWCryptoHook_PassphraseContext* ppctx,
+                              HWCryptoHook_CallerContext* cactx);
+static int hwcrhk_get_pass(const char* prompt_info,
+                           int* len_io, char* buf,
+                           HWCryptoHook_PassphraseContext* ppctx,
+                           HWCryptoHook_CallerContext* cactx);
+static void hwcrhk_log_message(void* logstr, const char* message);
 
-/* The definitions for control commands specific to this engine */
-#  define HWCRHK_CMD_SO_PATH              ENGINE_CMD_BASE
-#  define HWCRHK_CMD_FORK_CHECK           (ENGINE_CMD_BASE + 1)
-#  define HWCRHK_CMD_THREAD_LOCKING       (ENGINE_CMD_BASE + 2)
-#  define HWCRHK_CMD_SET_USER_INTERFACE   (ENGINE_CMD_BASE + 3)
-#  define HWCRHK_CMD_SET_CALLBACK_DATA    (ENGINE_CMD_BASE + 4)
+#define HWCRHK_CMD_SO_PATH              ENGINE_CMD_BASE
+#define HWCRHK_CMD_FORK_CHECK           (ENGINE_CMD_BASE + 1)
+#define HWCRHK_CMD_THREAD_LOCKING       (ENGINE_CMD_BASE + 2)
+#define HWCRHK_CMD_SET_USER_INTERFACE   (ENGINE_CMD_BASE + 3)
+#define HWCRHK_CMD_SET_CALLBACK_DATA    (ENGINE_CMD_BASE + 4)
 static const ENGINE_CMD_DEFN hwcrhk_cmd_defns[] = {
     {HWCRHK_CMD_SO_PATH,
      "SO_PATH",
