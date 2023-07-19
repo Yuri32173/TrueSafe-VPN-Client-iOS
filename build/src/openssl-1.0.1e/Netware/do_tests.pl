@@ -56,123 +56,105 @@ sub main()
    print("Check log file for errors: $log_file\n");
 }
 
-############################################################################
-sub algorithm_tests
-{
-   my $i;
-   my $outFile;
-   my @tests = ( rsa_test, destest, ideatest, bftest, bntest, shatest, sha1test,
-                 sha256t, sha512t, dsatest, md2test, md4test, md5test, mdc2test,
-                 rc2test, rc4test, rc5test, randtest, rmdtest, dhtest, ecdhtest,
-                 ecdsatest, ectest, exptest, casttest, hmactest );
+sub algorithm_tests {
+    my @tests = (
+        'rsa_test', 'destest', 'ideatest', 'bftest', 'bntest', 'shatest', 'sha1test',
+        'sha256t', 'sha512t', 'dsatest', 'md2test', 'md4test', 'md5test', 'mdc2test',
+        'rc2test', 'rc4test', 'rc5test', 'randtest', 'rmdtest', 'dhtest', 'ecdhtest',
+        'ecdsatest', 'ectest', 'exptest', 'casttest', 'hmactest'
+    );
 
-   print( "\nRUNNING CRYPTO ALGORITHM TESTS:\n\n");
+    print "\nRUNNING CRYPTO ALGORITHM TESTS:\n\n";
 
-   print( OUT "\n========================================================\n");
-   print( OUT "CRYPTO ALGORITHM TESTS:\n\n");
+    print OUT "\n========================================================\n";
+    print OUT "CRYPTO ALGORITHM TESTS:\n\n";
 
-   foreach $i (@tests)
-   {
-      if (-e "$base_path\\$i.nlm")
-      {
-         $outFile = "$output_path\\$i.out";
-         system("$i (CLIB_OPT)/>$outFile");
-         log_desc("Test: $i\.nlm:");
-         log_output("", $outFile );
-      }
-      else
-      {
-         log_desc("Test: $i\.nlm: file not found");
-      }
-   }
+    foreach my $test (@tests) {
+        if (-e "$base_path/$test.nlm") {
+            my $outFile = "$output_path/$test.out";
+            system("$test (CLIB_OPT) > $outFile");
+            log_desc("Test: $test.nlm:");
+            log_output("", $outFile);
+        } else {
+            log_desc("Test: $test.nlm: file not found");
+        }
+    }
 }
 
-############################################################################
-sub encryption_tests
-{
-   my $i;
-   my $outFile;
-   my @enc_tests = ( "enc", "rc4", "des-cfb", "des-ede-cfb", "des-ede3-cfb",
-                     "des-ofb", "des-ede-ofb", "des-ede3-ofb",
-                     "des-ecb", "des-ede", "des-ede3", "des-cbc",
-                     "des-ede-cbc", "des-ede3-cbc", "idea-ecb", "idea-cfb",
-                     "idea-ofb", "idea-cbc", "rc2-ecb", "rc2-cfb",
-                     "rc2-ofb", "rc2-cbc", "bf-ecb", "bf-cfb",
-                     "bf-ofb", "bf-cbc" );
+sub encryption_tests {
+    my @enc_tests = (
+        'enc', 'rc4', 'des-cfb', 'des-ede-cfb', 'des-ede3-cfb',
+        'des-ofb', 'des-ede-ofb', 'des-ede3-ofb',
+        'des-ecb', 'des-ede', 'des-ede3', 'des-cbc',
+        'des-ede-cbc', 'des-ede3-cbc', 'idea-ecb', 'idea-cfb',
+        'idea-ofb', 'idea-cbc', 'rc2-ecb', 'rc2-cfb',
+        'rc2-ofb', 'rc2-cbc', 'bf-ecb', 'bf-cfb',
+        'bf-ofb', 'bf-cbc'
+    );
 
-   my $input = "$base_path\\do_tests.pl";
-   my $cipher = "$output_path\\cipher.out";
-   my $clear = "$output_path\\clear.out";
+    my $input = "$base_path/do_tests.pl";
+    my $cipher = "$output_path/cipher.out";
+    my $clear = "$output_path/clear.out";
 
-   print( "\nRUNNING ENCRYPTION & DECRYPTION TESTS:\n\n");
+    print "\nRUNNING ENCRYPTION & DECRYPTION TESTS:\n\n";
 
-   print( OUT "\n========================================================\n");
-   print( OUT "FILE ENCRYPTION & DECRYPTION TESTS:\n\n");
+    print OUT "\n========================================================\n";
+    print OUT "FILE ENCRYPTION & DECRYPTION TESTS:\n\n";
 
-   foreach $i (@enc_tests)
-   {
-      log_desc("Testing: $i");
+    foreach my $enc_test (@enc_tests) {
+        log_desc("Testing: $enc_test");
 
-      # do encryption
-      $outFile = "$output_path\\enc.out";
-      system("openssl2 $i -e -bufsize 113 -k test -in $input -out $cipher (CLIB_OPT)/>$outFile" );
-      log_output("Encrypting: $input --> $cipher", $outFile);
+        # do encryption
+        my $outFile = "$output_path/enc.out";
+        system("openssl2 $enc_test -e -bufsize 113 -k test -in $input -out $cipher (CLIB_OPT) > $outFile");
+        log_output("Encrypting: $input --> $cipher", $outFile);
 
-      # do decryption
-      $outFile = "$output_path\\dec.out";
-      system("openssl2 $i -d -bufsize 157 -k test -in $cipher -out $clear (CLIB_OPT)/>$outFile");
-      log_output("Decrypting: $cipher --> $clear", $outFile);
+        # do decryption
+        $outFile = "$output_path/dec.out";
+        system("openssl2 $enc_test -d -bufsize 157 -k test -in $cipher -out $clear (CLIB_OPT) > $outFile");
+        log_output("Decrypting: $cipher --> $clear", $outFile);
 
-      # compare files
-      $x = compare_files( $input, $clear, 1);
-      if ( $x == 0 )
-      {
-         print( "\rSUCCESS - files match: $input, $clear\n");
-         print( OUT "SUCCESS - files match: $input, $clear\n");
-      }
-      else
-      {
-         print( "\rERROR: files don't match\n");
-         print( OUT "ERROR: files don't match\n");
-      }
+        # compare files
+        my $x = compare_files($input, $clear, 1);
+        if ($x == 0) {
+            print "SUCCESS - files match: $input, $clear\n";
+            print OUT "SUCCESS - files match: $input, $clear\n";
+        } else {
+            print "ERROR: files don't match\n";
+            print OUT "ERROR: files don't match\n";
+        }
 
-      do_wait();
+        do_wait();
 
-      # Now do the same encryption but use Base64
+        # Now do the same encryption but use Base64
 
-      # do encryption B64
-      $outFile = "$output_path\\B64enc.out";
-      system("openssl2 $i -a -e -bufsize 113 -k test -in $input -out $cipher (CLIB_OPT)/>$outFile");
-      log_output("Encrypting(B64): $cipher --> $clear", $outFile);
+        # do encryption B64
+        $outFile = "$output_path/B64enc.out";
+        system("openssl2 $enc_test -a -e -bufsize 113 -k test -in $input -out $cipher (CLIB_OPT) > $outFile");
+        log_output("Encrypting(B64): $cipher --> $clear", $outFile);
 
-      # do decryption B64
-      $outFile = "$output_path\\B64dec.out";
-      system("openssl2 $i -a -d -bufsize 157 -k test -in $cipher -out $clear (CLIB_OPT)/>$outFile");
-      log_output("Decrypting(B64): $cipher --> $clear", $outFile);
+        # do decryption B64
+        $outFile = "$output_path/B64dec.out";
+        system("openssl2 $enc_test -a -d -bufsize 157 -k test -in $cipher -out $clear (CLIB_OPT) > $outFile");
+        log_output("Decrypting(B64): $cipher --> $clear", $outFile);
 
-      # compare files
-      $x = compare_files( $input, $clear, 1);
-      if ( $x == 0 )
-      {
-         print( "\rSUCCESS - files match: $input, $clear\n");
-         print( OUT "SUCCESS - files match: $input, $clear\n");
-      }
-      else
-      {
-         print( "\rERROR: files don't match\n");
-         print( OUT "ERROR: files don't match\n");
-      }
+        # compare files
+        $x = compare_files($input, $clear, 1);
+        if ($x == 0) {
+            print "SUCCESS - files match: $input, $clear\n";
+            print OUT "SUCCESS - files match: $input, $clear\n";
+        } else {
+            print "ERROR: files don't match\n";
+            print OUT "ERROR: files don't match\n";
+        }
 
-      do_wait();
+        do_wait();
+    }
 
-   } # end foreach
-
-   # delete the temporary files
-   unlink($cipher);
-   unlink($clear);
+    # delete the temporary files
+    unlink $cipher;
+    unlink $clear;
 }
-
-
 ############################################################################
 sub pem_tests
 {
