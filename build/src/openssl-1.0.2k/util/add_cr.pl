@@ -6,58 +6,63 @@
 # perl util/add_cr.pl *.[ch] */*.[ch] */*/*.[ch]
 #
 
-foreach (@ARGV)
-	{
-	&dofile($_);
-	}
+#!/usr/bin/perl
+use strict;
+use warnings;
 
-sub dofile
-	{
-	local($file)=@_;
+die "Usage: $0 <file1> <file2> ...\n" unless @ARGV;
 
-	open(IN,"<$file") || die "unable to open $file:$!\n";
+foreach my $file (@ARGV) {
+    dofile($file);
+}
 
-	print STDERR "doing $file\n";
-	@in=<IN>;
+sub dofile {
+    my ($file) = @_;
 
-	return(1) if ($in[0] =~ / NOCW /);
+    open(my $in_fh, '<', $file) || die "Unable to open $file: $!\n";
+    my @in = <$in_fh>;
+    close($in_fh);
 
-	@out=();
-	open(OUT,">$file.out") || die "unable to open $file.$$:$!\n";
-	push(@out,"/* $file */\n");
-	if (($in[1] !~ /^\/\* Copyright \(C\) [0-9-]+ Eric Young \(eay\@cryptsoft.com\)/))
-		{
-		push(@out,&Copyright);
-		$i=2;
-		@a=grep(/ Copyright \(C\) /,@in);
-		if ($#a >= 0)
-			{
-			while (($i <= $#in) && ($in[$i] ne " */\n"))
-				{ $i++; }
-			$i++ if ($in[$i] eq " */\n");
+    print STDERR "Processing $file\n";
+    return 1 if ($in[0] =~ / NOCW /);
 
-			while (($i <= $#in) && ($in[$i] =~ /^\s*$/))
-				{ $i++; }
+    my @out = ();
+    open(my $out_fh, '>', "$file.out") || die "Unable to open $file.$$: $!\n";
+    push(@out, "/* $file */\n");
 
-			push(@out,"\n");
-			for ( ; $i <= $#in; $i++)
-				{ push(@out,$in[$i]); }
-			}
-		else
-			{ push(@out,@in); }
-		}
-	else
-		{
-		shift(@in);
-		push(@out,@in);
-		}
-	print OUT @out;
-	close(IN);
-	close(OUT);
-	rename("$file","$file.orig") || die "unable to rename $file:$!\n";
-	rename("$file.out",$file) || die "unable to rename $file.out:$!\n";
-	}
+    if ($in[1] !~ /^\/\* Copyright \(C\) [0-9-]+ Eric Young \(eay\@cryptsoft.com\)/) {
+        push(@out, &Copyright);
+        my $i = 2;
+        my @a = grep(/ Copyright \(C\) /, @in);
 
+        if (@a) {
+            while (($i <= $#in) && ($in[$i] ne " */\n")) {
+                $i++;
+            }
+            $i++ if ($in[$i] eq " */\n");
+
+            while (($i <= $#in) && ($in[$i] =~ /^\s*$/)) {
+                $i++;
+            }
+
+            push(@out, "\n");
+            for (; $i <= $#in; $i++) {
+                push(@out, $in[$i]);
+            }
+        } else {
+            push(@out, @in);
+        }
+    } else {
+        shift(@in);
+        push(@out, @in);
+    }
+
+    print $out_fh @out;
+    close($out_fh);
+
+    rename($file, "$file.orig") || die "Unable to rename $file: $!\n";
+    rename("$file.out", $file) || die "Unable to rename $file.out: $!\n";
+}
 
 
 sub Copyright
