@@ -1,70 +1,56 @@
 #!/usr/local/bin/perl
 
-use Fcntl;
-
-
-# copy.pl
-
-# Perl script 'copy' comment. On Windows the built in "copy" command also
-# copies timestamps: this messes up Makefile dependencies.
+#!/usr/bin/perl
+use strict;
+use warnings;
+use File::Copy;
 
 my $stripcr = 0;
+my @filelist;
 
-my $arg;
-
-foreach $arg (@ARGV) {
-	if ($arg eq "-stripcr")
-		{
+foreach my $arg (@ARGV) {
+	if ($arg eq "-stripcr") {
 		$stripcr = 1;
 		next;
-		}
+	}
 	$arg =~ s|\\|/|g;	# compensate for bug/feature in cygwin glob...
-	foreach (glob $arg)
-		{
-		push @filelist, $_;
-		}
+	push @filelist, glob $arg;
 }
 
-$fnum = @filelist;
+my $fnum = @filelist;
 
-if ($fnum <= 1)
-	{
+if ($fnum < 2) {
 	die "Need at least two filenames";
-	}
+}
 
-$dest = pop @filelist;
-	
-if ($fnum > 2 && ! -d $dest)
-	{
+my $dest = pop @filelist;
+
+if ($fnum > 2 && !-d $dest) {
 	die "Destination must be a directory";
+}
+
+foreach my $source (@filelist) {
+	my $destination;
+	if (-d $dest) {
+		my ($filename) = $source =~ m{([^/\\]+)$};
+		$destination = "$dest/$filename";
+	} else {
+		$destination = $dest;
 	}
 
-foreach (@filelist)
-	{
-	if (-d $dest)
-		{
-		$dfile = $_;
-		$dfile =~ s|^.*[/\\]([^/\\]*)$|$1|;
-		$dfile = "$dest/$dfile";
-		}
-	else
-		{
-		$dfile = $dest;
-		}
-	sysopen(IN, $_, O_RDONLY|O_BINARY) || die "Can't Open $_";
-	sysopen(OUT, $dfile, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY)
-					|| die "Can't Open $dfile";
-	while (sysread IN, $buf, 10240)
-		{
-		if ($stripcr)
-			{
+	if ($stripcr) {
+		open my $in_fh, '<:raw', $source or die "Can't open $source: $!";
+		open my $out_fh, '>:raw', $destination or die "Can't open $destination: $!";
+		while (read $in_fh, my $buf, 10240) {
 			$buf =~ tr/\015//d;
-			}
-		syswrite(OUT, $buf, length($buf));
+			print $out_fh $buf;
 		}
-	close(IN);
-	close(OUT);
-	print "Copying: $_ to $dfile\n";
+		close $in_fh;
+		close $out_fh;
+	} else {
+		copy($source, $destination) or die "Copy failed: $!";
 	}
-		
+
+	print "Copying: $source to $destination\n";
+}
 
