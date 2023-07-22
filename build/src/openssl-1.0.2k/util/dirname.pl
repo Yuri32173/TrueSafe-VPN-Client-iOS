@@ -1,18 +1,20 @@
 #!/usr/local/bin/perl
 
-if ($#ARGV < 0) {
-    die "dirname.pl: too few arguments\n";
-} elsif ($#ARGV > 0) {
-    die "dirname.pl: too many arguments\n";
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+if (@ARGV != 1) {
+    die "Usage: dirname.pl <path>\n";
 }
 
-my $d = $ARGV[0];
+my $path = $ARGV[0];
 
-if ($d =~ m|.*/.*|) {
-    $d =~ s|/[^/]*$||;
+if ($path =~ m|/|) {
+    $path =~ s|/[^/]*$||;
 } else {
-    $d = ".";
+    $path = ".";
 }
 
-print $d,"\n";
+print $path, "\n";
 exit(0);
