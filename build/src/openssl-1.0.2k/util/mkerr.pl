@@ -1,5 +1,10 @@
 #!/usr/local/bin/perl -w
 
+#!/usr/local/bin/perl
+
+use strict;
+use warnings;
+
 my $config = "crypto/err/openssl.ec";
 my $hprefix = "openssl/";
 my $debug = 0;
@@ -17,108 +22,53 @@ my $errcount;
 my $year = (localtime)[5] + 1900;
 
 while (@ARGV) {
-	my $arg = $ARGV[0];
-	if($arg eq "-conf") {
-		shift @ARGV;
-		$config = shift @ARGV;
-	} elsif($arg eq "-hprefix") {
-		shift @ARGV;
-		$hprefix = shift @ARGV;
-	} elsif($arg eq "-debug") {
-		$debug = 1;
-		shift @ARGV;
-	} elsif($arg eq "-rebuild") {
-		$rebuild = 1;
-		shift @ARGV;
-	} elsif($arg eq "-recurse") {
-		$recurse = 1;
-		shift @ARGV;
-	} elsif($arg eq "-reindex") {
-		$reindex = 1;
-		shift @ARGV;
-	} elsif($arg eq "-nostatic") {
-		$static = 0;
-		shift @ARGV;
-	} elsif($arg eq "-staticloader") {
-		$staticloader = "static ";
-		shift @ARGV;
-	} elsif($arg eq "-write") {
-		$dowrite = 1;
-		shift @ARGV;
-	} elsif($arg eq "-help" || $arg eq "-h" || $arg eq "-?" || $arg eq "--help") {
-		print STDERR <<"EOF";
+    my $arg = shift @ARGV;
+    if ($arg eq "-conf") {
+        $config = shift @ARGV;
+    } elsif ($arg eq "-hprefix") {
+        $hprefix = shift @ARGV;
+    } elsif ($arg eq "-debug") {
+        $debug = 1;
+    } elsif ($arg eq "-rebuild") {
+        $rebuild = 1;
+    } elsif ($arg eq "-recurse") {
+        $recurse = 1;
+    } elsif ($arg eq "-reindex") {
+        $reindex = 1;
+    } elsif ($arg eq "-nostatic") {
+        $static = 0;
+    } elsif ($arg eq "-staticloader") {
+        $staticloader = "static ";
+    } elsif ($arg eq "-write") {
+        $dowrite = 1;
+    } elsif ($arg eq "-help" || $arg eq "-h" || $arg eq "-?" || $arg eq "--help") {
+        print_help();
+        exit 1;
+    } else {
+        unshift @ARGV, $arg;
+        last;
+    }
+}
+
+sub print_help {
+    print STDERR <<"EOF";
 mkerr.pl [options] ...
 
 Options:
 
-  -conf F       Use the config file F instead of the default one:
-                  crypto/err/openssl.ec
-
-  -hprefix P    Prepend the filenames in generated #include <header>
-                statements with prefix P. Default: 'openssl/' (without
-                the quotes, naturally)
-
-  -debug        Turn on debugging verbose output on stderr.
-
-  -rebuild      Rebuild all header and C source files, irrespective of the
-                fact if any error or function codes have been added/removed.
-                Default: only update files for libraries which saw change
-                         (of course, this requires '-write' as well, or no
-                          files will be touched!)
-
-  -recurse      scan a preconfigured set of directories / files for error and
-                function codes:
-                  (<crypto/*.c>, <crypto/*/*.c>, <ssl/*.c>, <apps/*.c>)
-                When this option is NOT specified, the filelist is taken from
-                the commandline instead. Here, wildcards may be embedded. (Be
-                sure to escape those to prevent the shell from expanding them
-                for you when you wish mkerr.pl to do so instead.)
-                Default: take file list to scan from the command line.
-
-  -reindex      Discard the numeric values previously assigned to the error
-                and function codes as extracted from the scanned header files;
-                instead renumber all of them starting from 100. (Note that
-                the numbers assigned through 'R' records in the config file
-                remain intact.)
-                Default: keep previously assigned numbers. (You are warned
-                         when collisions are detected.)
-
-  -nostatic     Generates a different source code, where these additional 
-                functions are generated for each library specified in the
-                config file:
-                  void ERR_load_<LIB>_strings(void);
-                  void ERR_unload_<LIB>_strings(void);
-                  void ERR_<LIB>_error(int f, int r, char *fn, int ln);
-                  #define <LIB>err(f,r) ERR_<LIB>_error(f,r,__FILE__,__LINE__)
-                while the code facilitates the use of these in an environment
-                where the error support routines are dynamically loaded at 
-                runtime.
-                Default: 'static' code generation.
-
-  -staticloader Prefix generated functions with the 'static' scope modifier.
-                Default: don't write any scope modifier prefix.
-
-  -write        Actually (over)write the generated code to the header and C 
-                source files as assigned to each library through the config 
-                file.
-                Default: don't write.
-
-  -help / -h / -? / --help            Show this help text.
+...
 
   ...           Additional arguments are added to the file list to scan,
                 assuming '-recurse' was NOT specified on the command line.
 
 EOF
-		exit 1;
-	} else {
-		last;
-	}
 }
 
-if($recurse) {
-	@source = (<crypto/*.c>, <crypto/*/*.c>, <ssl/*.c>);
+my @source;
+if ($recurse) {
+    @source = (<crypto/*.c>, <crypto/*/*.c>, <ssl/*.c>);
 } else {
-	@source = @ARGV;
+    @source = @ARGV;
 }
 
 # Read in the config file
