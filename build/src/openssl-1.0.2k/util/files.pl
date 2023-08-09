@@ -1,67 +1,60 @@
 #!/usr/local/bin/perl
-#
+
+use strict;
+use warnings;
+
 # used to generate the file MINFO for use by util/mk1mf.pl
 # It is basically a list of all variables from the passed makefile
-#
 
-while ($ARGV[0] =~ /^(\S+)\s*=(.*)$/)
-	{
-	$sym{$1} = $2;
-	shift;
-	}
+my %sym;
+my $s = "";
+my $dir = "";
 
-$s="";
-while (<>)
-	{
-	chop;
-	s/#.*//;
-	if (/^(\S+)\s*=\s*(.*)$/)
-		{
-		$o="";
-		($s,$b)=($1,$2);
-		for (;;)
-			{
-			if ($b =~ /\\$/)
-				{
-				chop($b);
-				$o.=$b." ";
-				$b=<>;
-				chop($b);
-				}
-			else
-				{
-				$o.=$b." ";
-				last;
-				}
-			}
-		$o =~ s/^\s+//;
-		$o =~ s/\s+$//;
-		$o =~ s/\s+/ /g;
+while ($ARGV[0] =~ /^(\S+)\s*=(.*)$/) {
+    $sym{$1} = $2;
+    shift;
+}
 
-		$o =~ s/\$[({]([^)}]+)[)}]/$sym{$1}/g;
-		$sym{$s}=$o if !exists $sym{$s};
-		}
-	}
+while (<>) {
+    chomp;
+    s/#.*//;
+    if (/^(\S+)\s*=\s*(.*)$/) {
+        my ($s, $b) = ($1, $2);
+        my $o = "";
+        while ($b =~ /\\$/) {
+            chop($b);
+            $o .= $b . " ";
+            $b = <>;
+            chop($b);
+        }
+        $o .= $b . " ";
+        $o =~ s/^\s+//;
+        $o =~ s/\s+$//;
+        $o =~ s/\s+/ /g;
 
-$pwd=`pwd`; chop($pwd);
+        $o =~ s/\$[({]([^)}]+)[)}]/$sym{$1}/g;
+        $sym{$s} = $o if !exists $sym{$s};
+    }
+}
 
-if ($sym{'TOP'} eq ".")
-	{
-	$n=0;
-	$dir=".";
-	}
-else	{
-	$n=split(/\//,$sym{'TOP'});
-	@_=split(/\//,$pwd);
-	$z=$#_-$n+1;
-	foreach $i ($z .. $#_) { $dir.=$_[$i]."/"; }
-	chop($dir);
-	}
+my $pwd = `pwd`;
+chomp($pwd);
+
+if ($sym{'TOP'} eq ".") {
+    $dir = ".";
+} else {
+    my @pwd_parts = split(/\//, $pwd);
+    my @top_parts = split(/\//, $sym{'TOP'});
+    my $z = $#pwd_parts - $#top_parts + 1;
+    foreach my $i ($z .. $#pwd_parts) {
+        $dir .= $pwd_parts[$i] . "/";
+    }
+    chop($dir);
+}
 
 print "RELATIVE_DIRECTORY=$dir\n";
 
-foreach (sort keys %sym)
-	{
-	print "$_=$sym{$_}\n";
-	}
+foreach my $key (sort keys %sym) {
+    print "$key=$sym{$key}\n";
+}
 print "RELATIVE_DIRECTORY=\n";
