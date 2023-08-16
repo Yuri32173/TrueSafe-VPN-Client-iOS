@@ -1,29 +1,38 @@
 #!/bin/env perl
 #
-open FD,"crypto/opensslv.h";
-while(<FD>) {
+open my $FD, "crypto/opensslv.h" or die "Cannot open file: $!";
+my ($ver, $v1, $v2, $v3, $v4, $beta, $version);
+
+while (<$FD>) {
     if (/OPENSSL_VERSION_NUMBER\s+(0x[0-9a-f]+)/i) {
-	$ver = hex($1);
-	$v1 = ($ver>>28);
-	$v2 = ($ver>>20)&0xff;
-	$v3 = ($ver>>12)&0xff;
-	$v4 = ($ver>> 4)&0xff;
-	$beta = $ver&0xf;
-	$version = "$v1.$v2.$v3";
-	if ($beta==0xf)	{ $version .= chr(ord('a')+$v4-1) if ($v4);	}
-	elsif ($beta==0){ $version .= "-dev";				}
-	else		{ $version .= "-beta$beta";			}
-	last;
+        $ver = hex($1);
+        $v1 = ($ver >> 28);
+        $v2 = ($ver >> 20) & 0xff;
+        $v3 = ($ver >> 12) & 0xff;
+        $v4 = ($ver >> 4) & 0xff;
+        $beta = $ver & 0xf;
+        $version = "$v1.$v2.$v3";
+        if ($beta == 0xf) {
+            $version .= chr(ord('a') + $v4 - 1) if ($v4);
+        } elsif ($beta == 0) {
+            $version .= "-dev";
+        } else {
+            $version .= "-beta$beta";
+        }
+        last;
     }
 }
-close(FD);
+close($FD);
 
-$filename = $ARGV[0]; $filename =~ /(.*)\.([^.]+)$/;
-$basename = $1;
-$extname  = $2;
+my $filename = $ARGV[0];
+my ($basename, $extname) = $filename =~ /(.*)\.([^.]+)$/;
 
-if ($extname =~ /dll/i)	{ $description = "OpenSSL shared library"; }
-else			{ $description = "OpenSSL application";    }
+my $description;
+if ($extname =~ /dll/i) {
+    $description = "OpenSSL shared library";
+} else {
+    $description = "OpenSSL application";
+}
 
 print <<___;
 #include <winver.h>
