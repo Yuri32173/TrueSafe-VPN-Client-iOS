@@ -1,4 +1,3 @@
-
 use strict;
 use warnings;
 
@@ -18,7 +17,7 @@ while (my $line = <STDIN>) {
 
     my $origfile = $thisfile;
     $origfile =~ s/\.o$/.c/;
-    my @deps = grep { !/^\// && !/^\\$/ && $_ ne $origfile && !/^[.\/]+\/krb5.h/ } split(' ', $deps);
+    my @deps = grep { !/^\// && !/^\\$/ && $_ ne $origfile && !/^[.\/]+\/krb5.h/ } split ' ', $deps;
     push @{$files{$thisfile}}, @deps;
 }
 
@@ -26,11 +25,10 @@ foreach my $file (sort keys %files) {
     my $len = 0;
     my $prevdep = "";
 
-    # Remove leading "./" before sorting
     my @deps = map { s/^\.\///; $_ } @{$files{$file}};
 
     foreach my $dep (sort @deps) {
-        next if $prevdep eq $dep; # to exterminate duplicates...
+        next if $prevdep eq $dep;
         $prevdep = $dep;
         $len = 0 if $len + length($dep) + 1 >= 80;
         if ($len == 0) {
