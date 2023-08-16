@@ -1,61 +1,70 @@
+#!/usr/local/bin/perl
+
 use strict;
 use warnings;
 
-my $err_strict = 0;
-my $bad = 0;
+my $config = "crypto/err/openssl.ec";
+my $hprefix = "openssl/";
+my $debug = 0;
+my $rebuild = 0;
+my $static = 1;
+my $recurse = 0;
+my $reindex = 0;
+my $dowrite = 0;
+my $staticloader = "";
 
-foreach my $file (@ARGV) {
-    if ($file eq "-strict") {
-        $err_strict = 1;
-        next;
+my $pack_errcode;
+my $load_errcode;
+
+my $errcount;
+my $year = (localtime)[5] + 1900;
+
+while (@ARGV) {
+    my $arg = shift @ARGV;
+    if ($arg eq "-conf") {
+        $config = shift @ARGV;
+    } elsif ($arg eq "-hprefix") {
+        $hprefix = shift @ARGV;
+    } elsif ($arg eq "-debug") {
+        $debug = 1;
+    } elsif ($arg eq "-rebuild") {
+        $rebuild = 1;
+    } elsif ($arg eq "-recurse") {
+        $recurse = 1;
+    } elsif ($arg eq "-reindex") {
+        $reindex = 1;
+    } elsif ($arg eq "-nostatic") {
+        $static = 0;
+    } elsif ($arg eq "-staticloader") {
+        $staticloader = "static ";
+    } elsif ($arg eq "-write") {
+        $dowrite = 1;
+    } elsif ($arg eq "-help" || $arg eq "-h" || $arg eq "-?" || $arg eq "--help") {
+        print_help();
+        exit 1;
+    } else {
+        unshift @ARGV, $arg;
+        last;
     }
-
-    open(my $in, "<", $file) || die "Unable to open $file: $!\n";
-    my $func = "";
-    while (my $line = <$in>) {
-        if (!/;$/ && /^\**([a-zA-Z].*[\s*])?([A-Za-z_0-9]+)\(.*([),]|$)/) {
-            /^([^()]*(\([^()]*\)[^()]*)*)\(/;
-            my $match = $1;
-            $match =~ /([A-Za-z_0-9]*)$/;
-            $func = lc($1);
-        }
-        if (/([A-Z0-9]+)err\(([^,]+)/ && !/ckerr_ignore/) {
-            my $errlib = $1;
-            my $n = $2;
-
-            if ($func eq "") {
-                print "$file:$.:???:$n\n";
-                $bad = 1;
-                next;
-            }
-
-            if ($n !~ /([^_]+)_F_(.+)$/) {
-                # print "check -$file:$.:$func:$n\n";
-                next;
-            }
-
-            my $lib = $1;
-            $n = lc($2);
-
-            if ($lib ne $errlib) {
-                print "$file:$.:$func:$n [${errlib}err]\n";
-                $bad = 1;
-                next;
-            }
-
-            if (($n ne $func) && ($errlib ne "SYS")) {
-                print "$file:$.:$func:$n\n";
-                $bad = 1;
-                next;
-            }
-            # print "$func:$1\n";
-        }
-    }
-    close($in);
 }
 
-if ($bad && $err_strict) {
-    print STDERR "FATAL: error discrepancy\n";
-    exit 1;
+sub print_help {
+    print STDERR <<"EOF";
+mkerr.pl [options] ...
+
+Options:
+
+...
+
+  ...           Additional arguments are added to the file list to scan,
+                assuming '-recurse' was NOT specified on the command line.
+
+EOF
 }
 
+my @source;
+if ($recurse) {
+    @source = (<crypto/*.c>, <crypto/*/*.c>, <ssl/*.c>);
+} else {
+    @source = @ARGV;
+}
