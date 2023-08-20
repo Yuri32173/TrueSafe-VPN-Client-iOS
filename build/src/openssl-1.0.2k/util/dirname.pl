@@ -1,5 +1,3 @@
-#!/usr/local/bin/perl
-
 #!/usr/bin/perl
 use strict;
 use warnings;
@@ -18,3 +16,4 @@ if ($path =~ m|/|) {
 
 print $path, "\n";
 exit(0);
+
