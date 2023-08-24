@@ -101,8 +101,7 @@ sub parse_linux
 				}
 			}
 		}
-	close(IN);
-	}
+	close(IN);	}
 
 sub parse_solaris
 	{
