@@ -1,8 +1,6 @@
-#!/usr/bin/env perl
-#
-# su-filter.pl
-#
+#!/usr/bin/perl
 use strict;
+use warnings;
 
 my $in_su = 0;
 my $indent = 0;
@@ -13,31 +11,31 @@ my $data;
 my $tststr;
 my $incomm = 0;
 
-while(<>) {
+while (<>) {
     $tststr = $_;
     $incomm++ while $tststr =~ /\/\*/g;
     $incomm-- while $tststr =~ /\*\//g;
 
-    if($in_su == 1) {
-        if(/}(.*);/) {
+    if ($in_su == 1) {
+        if (/}(.*);/) {
             $out .= $_;
             do_output($out);
             $in_su = 0;
-        } elsif(/^ *\} [^\s]+(\[\d*\])* = \{/) {
-           $tststr = $1;
-           $arrcnt = 0;
-           $arrcnt++ while $tststr =~ /\[/g;
-           $in_su++;
-           $braces = 1;
-           /^(.* = \{)(.*)$/;
-           $data = $2;
-           $out .= $1."\n";
+        } elsif (/^ *\} [^\s]+(\[\d*\])* = \{/) {
+            $tststr = $1;
+            $arrcnt = 0;
+            $arrcnt++ while $tststr =~ /\[/g;
+            $in_su++;
+            $braces = 1;
+            /^(.* = \{)(.*)$/;
+            $data = $2;
+            $out .= $1."\n";
         } else {
             $out .= $_;
         }
-    } elsif($in_su == 2) {
+    } elsif ($in_su == 2) {
         $data .= $_;
-        if(/};$/) {
+        if (/};$/) {
             #$data = "\n$data";
             $data =~ s/\n */\n/g;
             $data =~ s/};\n?//s;
@@ -47,7 +45,7 @@ while(<>) {
             do_output($out);
             $in_su = 0;
         }
-    } elsif($incomm <= 0 && /( *)(static )?(const )?(union|struct) ([^\s]+ )?\{/) {
+    } elsif ($incomm <= 0 && /( *)(static )?(const )?(union|struct) ([^\s]+ )?\{/) {
         $in_su = 1;
         $indent = $1;
         $out = $_;
@@ -57,10 +55,9 @@ while(<>) {
     }
 }
 
-
 sub structureData {
-    my $data = $_[0];
-    my @datalist = split(/(\{|\}|,|"|#|\n|\/\*|\*\/|\(|\))/, $data);
+    my ($data) = @_;
+    my @datalist = split /(\{|\}|,|"|#|\n|\/\*|\*\/|\(|\))/, $data;
     my $item;
     my $dataitem = "";
     my @struclist = ();
@@ -71,10 +68,9 @@ sub structureData {
     my $comment = 0;
     my $inparen = 0;
 
-
     foreach $item (@datalist) {
-        if($comment) {
-            if($item eq "*/") {
+        if ($comment) {
+            if ($item eq "*/") {
                 $comment = 0;
                 $dataitem .= "*/";
                 push @struclist, $dataitem;
@@ -84,15 +80,15 @@ sub structureData {
             $dataitem .= $item;
             next;
         }
-        if($inquote) {
+        if ($inquote) {
             $dataitem .= $item;
-            if($item eq "\"") {
+            if ($item eq "\"") {
                 $inquote--;
             }
             next;
         }
-        if($preproc) {
-            if($item eq "\n") {
+        if ($preproc) {
+            if ($item eq "\n") {
                 $preproc = 0;
                 push @struclist, $dataitem;
                 $dataitem = "";
@@ -101,16 +97,15 @@ sub structureData {
             $dataitem .= $item;
             next;
         }
-        if($inbrace) {
-            if($item eq "}") {
-                $inbrace --;
-            
-                if(!$inbrace) {
+        if ($inbrace) {
+            if ($item eq "}") {
+                $inbrace--;
+                if (!$inbrace) {
                     $substruc = structureData($dataitem);
                     $dataitem = $substruc;
                     next;
                 }
-            } elsif($item eq "{") {
+            } elsif ($item eq "{") {
                 $inbrace++;
             } elsif ($item eq "\"") {
                 $inquote++;
@@ -118,51 +113,51 @@ sub structureData {
             $dataitem .= $item;
             next;
         }
-        if($inparen) {
-            if($item eq ")") {
+        if ($inparen) {
+            if ($item eq ")") {
                 $inparen--;
             }
             $dataitem .= $item;
             next;
         }
-        if($item eq "\n") {
+        if ($item eq "\n") {
             next;
         }
-        if($item eq "#") {
+        if ($item eq "#") {
             $preproc = 1;
             push @struclist, $dataitem;
             $dataitem = "#";
             next;
         }
-        if($item eq "/*") {
+        if ($item eq "/*") {
             $comment = 1;
             push @struclist, $dataitem;
-            $dataitem= "/*";
+            $dataitem = "/*";
             next;
         }
-        if($item eq "\"") {
+        if ($item eq "\"") {
             $dataitem .= $item;
             $inquote++;
             next;
         }
-        if($item eq "{") {
+        if ($item eq "{") {
             $inbrace++;
             next;
         }
-        if($item eq ",") {
+        if ($item eq ",") {
             push @struclist, $dataitem;
             $dataitem = "";
             next;
         }
-        if($item eq "(") {
+        if ($item eq "(") {
             $dataitem .= $item;
             $inparen++;
             next;
         }
-        if($item =~ /^\s*$/) {
+        if ($item =~ /^\s*$/) {
             next;
         }
-        if(ref $dataitem eq 'ARRAY') {
+        if (ref $dataitem eq 'ARRAY') {
             push @struclist, $dataitem;
             $dataitem = "";
         }
