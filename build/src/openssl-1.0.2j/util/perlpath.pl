@@ -1,35 +1,27 @@
-#!/usr/local/bin/perl
-#
-# modify the '#!/usr/local/bin/perl'
-# line in all scripts that rely on perl.
-#
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use File::Find;
 
-require "find.pl";
+die "usage: perlpath newpath  (eg /usr/bin)\n" unless @ARGV == 1;
 
-$#ARGV == 0 || print STDERR "usage: perlpath newpath  (eg /usr/bin)\n";
-&find(".");
+find(\&wanted, ".");
 
-sub wanted
-	{
-	return unless /\.pl$/ || /^[Cc]onfigur/;
+sub wanted {
+    return unless /\.pl$/i || /^[Cc]onfigur/i;
 
-	open(IN,"<$_") || die "unable to open $dir/$_:$!\n";
-	@a=<IN>;
-	close(IN);
+    open(my $IN, "<", $_) || die "unable to open $_: $!\n";
+    my @lines = <$IN>;
+    close($IN);
 
-	if (-d $ARGV[0]) {
-		$a[0]="#!$ARGV[0]/perl\n";
-	}
-	else {
-		$a[0]="#!$ARGV[0]\n";
-	}
+    my $new_first_line = "#!$ARGV[0]/perl\n";
+    $new_first_line = "#!$ARGV[0]\n" unless -d $ARGV[0];
 
-	# Playing it safe...
-	$new="$_.new";
-	open(OUT,">$new") || die "unable to open $dir/$new:$!\n";
-	print OUT @a;
-	close(OUT);
+    my $new_file = "$_.new";
+    open(my $OUT, ">", $new_file) || die "unable to open $new_file: $!\n";
+    print $OUT $new_first_line, @lines[1..$#lines];
+    close($OUT);
 
-	rename($new,$_) || die "unable to rename $dir/$new:$!\n";
-	chmod(0755,$_) || die "unable to chmod $dir/$new:$!\n";
-	}
+    rename($new_file, $_) || die "unable to rename $new_file: $!\n";
+    chmod(0755, $_) || die "unable to chmod $_: $!\n";
+}
