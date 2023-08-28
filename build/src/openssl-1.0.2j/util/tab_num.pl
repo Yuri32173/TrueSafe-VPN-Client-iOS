@@ -1,17 +1,15 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
+use strict;
+use warnings;
 
-$num=1;
-$width=40;
+my $num = 1;
+my $width = 40;
 
-while (<>)
-	{
-	chop;
-
-	$i=length($_);
-
-	$n=$width-$i;
-	$i=int(($n+7)/8);
-	print $_.("\t" x $i).$num."\n";
-	$num++;
-	}
-
+while (<>) {
+    chomp;
+    my $i = length($_);
+    my $n = $width - $i;
+    my $tabs = int(($n + 7) / 8);
+    print $_ . ("\t" x $tabs) . $num . "\n";
+    $num++;
+}
